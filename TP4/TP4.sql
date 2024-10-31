@@ -55,26 +55,26 @@ BEGIN
     
     DECLARE CONTINUE HANDLER FOR SQLEXCEPTION -- Cualquier error que ocurra durante la ejecucion del procedimiento va a hacer ejecutar el codigo entre el begin y end siguientes
     BEGIN
-		DECLARE MensajeDeError_actual TEXT; -- A continuacion se nos ocurrio hacer una tabla para guardar mas informacion acerca del error. 
-											-- Usar solo el SIGNAL parecia muy poco informativo y no ayudaria mucho, asi que incluimos informacion acerca...
-                                            						-- ...del ultimo registro ingresado por el cursor asi es mas facil detectar la posicion de un posible error de input.
+	DECLARE MensajeDeError_actual TEXT; -- A continuacion se nos ocurrio hacer una tabla para guardar mas informacion acerca del error. 
+						-- Usar solo el SIGNAL parecia muy poco informativo y no ayudaria mucho, asi que incluimos informacion acerca...
+                                            	-- ...del ultimo registro ingresado por el cursor asi es mas facil detectar la posicion de un posible error de input.
         SET MensajeDeError_actual = CONCAT('Error durante la ejecucion de ConsolidadoVentas. Ultimo registro ingresado:', CHAR(10),
-										'Cliente ID: ', ClienteId_actual, CHAR(10),
-                                        'Producto ID: ', ProductoId_actual, CHAR(10),
-                                        'Cantidad: ', Cantidad_actual, CHAR(10),
-                                        'Precio unitario: ', PrecioUnitario_actual);
+					   'Cliente ID: ', ClienteId_actual, CHAR(10),
+                                           'Producto ID: ', ProductoId_actual, CHAR(10),
+                                           'Cantidad: ', Cantidad_actual, CHAR(10),
+                                           'Precio unitario: ', PrecioUnitario_actual);
         
-		CREATE TABLE IF NOT EXISTS historialerrores(
-			FechaError DATE,
-            MensajeDeError TEXT
+	CREATE TABLE IF NOT EXISTS historialerrores(
+		FechaError DATE,
+            	MensajeDeError TEXT
         );
         
         INSERT INTO historialerrores (FechaError, MensajeDeError) VALUES (CURRENT_DATE, MensajeDeError_actual);
         
         ROLLBACK; -- Si se detecta un error entonces el rollback revierte los datos hasta el "START TRANSACTION;"
-		CLOSE cursor_pedidos; -- Cerramos el cursor asi podemos volver a abrirlo la proxima ves que iniciemos el codigo
+	CLOSE cursor_pedidos; -- Cerramos el cursor asi podemos volver a abrirlo la proxima ves que iniciemos el codigo
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = MensajeSignalError;
-		-- Singnal sqltate muestra en un mensaje de error personalizado.
+	-- Singnal sqltate muestra en un mensaje de error personalizado.
     END;
     
 	SET MensajeSignalError = 'Ocurrio un error durante la ejecucion de ConsolidadoVentas. Mas informacion en la tabla HistorialErrores.'; -- El mensaje de error del SIGNAL empieza siendo este predeterminadamente y cambia se se cumplen otras condiciones que implican distintos errores
@@ -84,8 +84,8 @@ BEGIN
 		FETCH cursor_pedidos INTO ClienteId_actual, ProductoId_actual, Cantidad_actual, PrecioUnitario_actual;
 			WHILE NOT fin_cursor DO
 				SET ConsolidadoId_elegida = (SELECT ConsolidadoId -- Seleccionamos el ConsolidadoId, para usarlo mas adelante, basandonos en la existencia de la llave candidata que se forma cuando juntamos ClienteId y ProductoId
-											FROM consolidadoventas 
-											WHERE ClienteId = ClienteId_actual AND ProductoId = ProductoId_actual);
+								FROM consolidadoventas 
+								WHERE ClienteId = ClienteId_actual AND ProductoId = ProductoId_actual);
 				IF Cantidad_actual <= 0 THEN
 					SET MensajeSignalError = 'Error: La cantidad del pedido no puede ser menor o igual a 0'; -- Modificamos el mensaje del SIGNAL para detallar el origen del error
 					SIGNAL SQLSTATE '45000';
@@ -94,8 +94,8 @@ BEGIN
 					SIGNAL SQLSTATE '45000';
 				ELSEIF ConsolidadoId_elegida IS NOT NULL THEN -- Si se selecciona un ConsolidadoId no nulo entonces el registro con esa clave candidata ya existe en la tabla por lo que podemos proceder a actualizar sus datos agregando las cantidades correspondientes
 					UPDATE consolidadoventas SET CantidadTotal = CantidadTotal + Cantidad_actual, 
-												IngresoTotal = IngresoTotal + Cantidad_actual * PrecioUnitario_actual
-												WHERE ConsolidadoId = ConsolidadoId_elegida;
+											IngresoTotal = IngresoTotal + Cantidad_actual * PrecioUnitario_actual
+											WHERE ConsolidadoId = ConsolidadoId_elegida;
 				ELSE -- Si se selecciona un valor nulo eso significa que la llave candidata no existe en la tabla por lo que tenemos que agregarle los valores del pedido a la tabla, creando un nuevo registro
 					INSERT INTO consolidadoventas (ClienteId, ProductoId, CantidadTotal, IngresoTotal) VALUES (ClienteId_actual, ProductoId_actual, Cantidad_actual, Cantidad_actual * PrecioUnitario_actual);
 				END IF;
