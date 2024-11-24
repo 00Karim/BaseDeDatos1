@@ -111,7 +111,7 @@ DELIMITER ;
 
 ```
 
-# SQL AUMENTAR LAS VENTAS TOTALES DE PRODUCTO
+# SQL AUMENTAR LAS VENTAS TOTALES DE PRODUCTO Y DISMINUIR CANTIDAD_DISPONIBLE
 ```sql
 
 ```
@@ -140,8 +140,11 @@ IN dni INT
         WHERE clientes.dni_cliente = dni;
     END //
 DELIMITER ; 
+```
+# 
+-------------------------------------------------------------------------
 # -------------------------------------------------------------------------
-# -------------------------------------------------------------------------
+```sql
 DELIMITER //
 CREATE PROCEDURE ObtenerClientePorNombre
 (
