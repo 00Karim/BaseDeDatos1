@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk, OptionMenu, StringVar, Text
 
 # Con estas variables controlamos si una ventana esta abierta
 ventana_productos_abierta = False
@@ -14,7 +15,7 @@ def ventanaPrincipal():
     ventana = tk.Tk()
     ventana.config(bg="#d1d1e0")
     ventana.title("Sistema de ventas en linea")
-    ventana.geometry("450x500")
+    ventana.attributes('-fullscreen', True)
 
     # Declarar grid de la ventana principal
     crearGridVentana(ventana)
@@ -27,6 +28,8 @@ def ventanaPrincipal():
     GestionDeClientes = tk.Button(ventana, text="Gestion de clientes", bg="#9494b8", font=("Arial", 14), command=lambda: ventanaGestionDeClientes(ventana))
     GestionDeOrdenes = tk.Button(ventana, text="Gestion de ordenes", bg="#9494b8", font=("Arial", 14), command=lambda: ventanaGestionDeOrdenes(ventana))
 
+    botonSalir = tk.Button(ventana, text="Salir", bg="#9494b8", font=("Arial", 14), command=ventana.destroy)
+
     # Posicionar header
     headerPrincipal.grid(row=2, column=2, sticky="nsew")
 
@@ -34,6 +37,8 @@ def ventanaPrincipal():
     GestionDeProductos.grid(row=4, column=2, sticky="nsew")
     GestionDeClientes.grid(row=6, column=2, sticky="nsew")
     GestionDeOrdenes.grid(row=8, column=2, sticky="nsew")
+
+    botonSalir.grid(row= 11, column=3, sticky="e")  
 
     ventana.mainloop()
 
@@ -54,7 +59,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
     ventanaGestionDeProductos = tk.Toplevel()
     ventanaGestionDeProductos.config(bg="#d1d1e0")
     ventanaGestionDeProductos.title("Gestion de productos")
-    ventanaGestionDeProductos.geometry("450x500")
+    ventanaGestionDeProductos.attributes('-fullscreen', True)
 
     # Declarar grid de la ventana
     crearGridVentana(ventanaGestionDeProductos)
@@ -69,6 +74,8 @@ def ventanaGestionDeProductos(ventanaAnterior):
     eliminarProducto = tk.Button(ventanaGestionDeProductos, text="Eliminar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
     consultasAvanzadas = tk.Button(ventanaGestionDeProductos, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
 
+    botonVolver = tk.Button(ventanaGestionDeProductos, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
     # Posicionar header
     headerPrincipal.grid(row=1, column=2, sticky="nsew")
 
@@ -77,7 +84,9 @@ def ventanaGestionDeProductos(ventanaAnterior):
     agregarProducto.grid(row=5, column=2, sticky="nsew")
     modificarProducto.grid(row=7, column=2, sticky="nsew")
     eliminarProducto.grid(row=9, column=2, sticky="nswe")
-    consultasAvanzadas.grid(row=11, column=2, sticky="nswe")    
+    consultasAvanzadas.grid(row=11, column=2, sticky="nswe")  
+
+    botonVolver.grid(row= 11, column=3, sticky="e")  
     
     def on_close():
         global ventana_productos_abierta
@@ -88,7 +97,6 @@ def ventanaGestionDeProductos(ventanaAnterior):
     ventanaGestionDeProductos.protocol("WM_DELETE_WINDOW", on_close)
 
     def verProducto():
-        global crearGridVentana
         nonlocal ventana_gestionProductos_abierta
 
         if ventana_gestionProductos_abierta:
@@ -110,29 +118,52 @@ def ventanaGestionDeProductos(ventanaAnterior):
         headerPrincipal = tk.Label(ventanaVerProducto, text="Ver productos", font=("Arial", 20, "bold"), bg="#d1d1e0")
 
         # Declarar botones
-        verProducto = tk.Button(ventanaVerProducto, text="Ver productos", bg="#9494b8", font=("Arial", 14), command=lambda: verProducto())
-        agregarProducto = tk.Button(ventanaVerProducto, text="Agregar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
-        modificarProducto = tk.Button(ventanaVerProducto, text="Modificar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
-        eliminarProducto = tk.Button(ventanaVerProducto, text="Eliminar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
-        consultasAvanzadas = tk.Button(ventanaVerProducto, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+
+        # Declarar dropdown
+        eleccion = StringVar() # Declaramos la variable como string var para poder acceder a ella para definir los metodos usados para mostrar la tabla
+        eleccion.set("Id")
+        dropdown = OptionMenu(ventanaVerProducto, eleccion, "Id", "Nombre", "Categoria")
+        
+        # Declarar input textarea + boton buscar
+        dropdownTextarea = Text(ventanaVerProducto, height=max, width=25)
+        botonBuscar = tk.Button(ventanaVerProducto, text="Aceptar", command=None)
+
+        # Declarar tabla
+        tablaProductos = ttk.Treeview(ventanaVerProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings")
+        tablaProductos.heading("id_producto", text="Id del producto")
+        tablaProductos.heading("nombre", text="Nombre")
+        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible")
+        tablaProductos.heading("categoria", text="Categoria")
+        tablaProductos.heading("ventas_totales", text="Ventas totales")
+        tablaProductos.column("id_producto", width=80)
+        tablaProductos.column("nombre", width=130)
+        tablaProductos.column("cantidad_disponible", width=100)
+        tablaProductos.column("categoria", width=130)
+        tablaProductos.column("ventas_totales", width=100)
 
         # Posicionar header
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        
 
         # Posicionar botones
-        verProducto.grid(row=3, column=2, sticky="nsew")
-        agregarProducto.grid(row=5, column=2, sticky="nsew")
-        modificarProducto.grid(row=7, column=2, sticky="nsew")
-        eliminarProducto.grid(row=9, column=2, sticky="nswe")
-        consultasAvanzadas.grid(row=11, column=2, sticky="nswe")    
+
+        # Posicionar dropdown
+        dropdown.grid(row=3, column=1, sticky="ew")
+
+        # Posicionar input textarea + boton buscar
+        dropdownTextarea.grid(row=3, column=2, sticky="we")
+        botonBuscar.grid(row=3, column=3, sticky="w")
+
+        # Posicionar tabla
+        tablaProductos.grid(row=4, column=2, rowspan=7, sticky="nsew")
     
         def on_close():
-            global ventana_productos_abierta
-            ventana_productos_abierta = False
-            ventanaGestionDeProductos.destroy()
-            ventanaAnterior.deiconify()
+            nonlocal ventana_gestionProductos_abierta
+            ventana_gestionProductos_abierta = False
+            ventanaVerProducto.destroy()
+            ventanaGestionDeProductos.deiconify()
 
-            ventanaGestionDeProductos.protocol("WM_DELETE_WINDOW", on_close)
+        ventanaVerProducto.protocol("WM_DELETE_WINDOW", on_close)
 
 
     def agregarProducto():
