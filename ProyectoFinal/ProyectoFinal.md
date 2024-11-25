@@ -113,7 +113,23 @@ DELIMITER ;
 
 # SQL AUMENTAR LAS VENTAS TOTALES DE PRODUCTO Y DISMINUIR CANTIDAD_DISPONIBLE
 ```sql
+DELIMITER //
 
+CREATE PROCEDURE ActualizarInventarioVentas(
+    IN producto_id INT,
+    IN cantidad_vendida INT
+)
+BEGIN
+    UPDATE Productos
+    SET ventas_totales = ventas_totales + cantidad_vendida
+    WHERE id_producto = producto_id;
+
+    UPDATE Productos
+    SET cantidad_disponible = cantidad_disponible - cantidad_vendida
+    WHERE id_producto = producto_id;
+END //
+
+DELIMITER ;
 ```
 
 # SQL OBTENER LA CANTIDAD TOTAL DE ORDENES DEL CLIENTE (Con un procedimiento que COUNT * las ordenes con el id del cliente)
@@ -141,8 +157,6 @@ IN dni INT
     END //
 DELIMITER ; 
 ```
-# 
--------------------------------------------------------------------------
 # -------------------------------------------------------------------------
 ```sql
 DELIMITER //
@@ -233,10 +247,49 @@ DELIMITER ;
 
 # SQL Get producto por id o por nombre
 ```sql
-```
+CREATE PROCEDURE ObtenerProductoPorID
+(
+    IN producto_id INT,
+)
 
+BEGIN
+    SELECT * FROM productos
+    WHERE id_producto = producto_id;
+END//
+
+DELIMITER;
+```
+# -------------------------------------------------------------------------
+```sql
+DELIMITER //
+
+CREATE PROCEDURE ObtenerProductoPorNombre
+(
+    IN producto_nombre VARCHAR(255)
+)
+
+BEGIN
+    SELECT * FROM productos
+    WHERE nombre_producto LIKE CONCAT('%', producto_nombre, '%')
+END//
+
+DELIMITER;
+```
 # SQL Get productos por categoria
 ```sql
+DELIMITER //
+
+CREATE PROCEDURE ObtenerProductoPorCategoria
+(
+    IN categoria_nombre VARCHAR(255)
+)
+
+BEGIN
+    SELECT * FROM productos
+    WHERE categoria_producto LIKE CONCAT('%', categoria_nombre, '%')
+END//
+
+DELIMITER;
 ```
 
 # SQL Borrar producto por id o por nombre
