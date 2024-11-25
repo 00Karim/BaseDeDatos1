@@ -85,8 +85,8 @@ CREATE TABLE OrdenesDeCompra(
     id_producto INT,
     cantidad INT,
     fecha DATE,
-    FOREIGN KEY (dni_cliente) REFERENCES Clientes(dni_cliente) ON UPDATE CASCADE,
-    FOREIGN KEY (id_producto) REFERENCES Productos(id_producto) ON UPDATE CASCADE
+    FOREIGN KEY (dni_cliente) REFERENCES Clientes(dni_cliente) ON UPDATE CASCADE ON DELETE SET NULL,
+    FOREIGN KEY (id_producto) REFERENCES Productos(id_producto) ON UPDATE CASCADE ON DELETE SET NULL
     )
 ```
 
@@ -134,6 +134,15 @@ DELIMITER ;
 
 # SQL OBTENER LA CANTIDAD TOTAL DE ORDENES DEL CLIENTE (Con un procedimiento que COUNT * las ordenes con el id del cliente)
 ```sql
+DELIMITER //
+CREATE PROCEDURE ObtenerCantOrdCliente(
+    IN cliente_id INT
+)
+BEGIN
+    SELECT COUNT(*) FROM ordenesdecompra
+    WHERE cliente_id = dni_cliente;
+END //
+DELIMITER ;
 ```
 
 # SQL BOTON DE ORDENAR POR `atributo`
@@ -316,6 +325,15 @@ DELIMITER ;
 
 # SQL Borrar categorias
 ```sql
+DELIMITER //
+CREATE PROCEDURE BorrarCategorias(
+    IN categoria_nombre VARCHAR(255)
+)
+BEGIN
+    DELETE FROM productos
+    WHERE categoria = categoria_nombre;
+END //
+DELIMITER ; 
 ```
 
 # SQL Agregar producto

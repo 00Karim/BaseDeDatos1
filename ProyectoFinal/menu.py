@@ -23,9 +23,9 @@ def ventanaPrincipal():
     headerPrincipal = tk.Label(ventana, text="SISTEMA DE VENTAS EN LINEA", font=("Arial", 20, "bold"), bg="#d1d1e0")
 
     # Declarar botones
-    GestionDeProductos = tk.Button(ventana, text="Gestion de productos", bg="#9494b8", font=("Arial", 14), command=ventanaGestionDeProductos)
-    GestionDeClientes = tk.Button(ventana, text="Gestion de clientes", bg="#9494b8", font=("Arial", 14), command=ventanaGestionDeClientes)
-    GestionDeOrdenes = tk.Button(ventana, text="Gestion de ordenes", bg="#9494b8", font=("Arial", 14), command=ventanaGestionDeOrdenes)
+    GestionDeProductos = tk.Button(ventana, text="Gestion de productos", bg="#9494b8", font=("Arial", 14), command=lambda: ventanaGestionDeProductos(ventana))
+    GestionDeClientes = tk.Button(ventana, text="Gestion de clientes", bg="#9494b8", font=("Arial", 14), command=lambda: ventanaGestionDeClientes(ventana))
+    GestionDeOrdenes = tk.Button(ventana, text="Gestion de ordenes", bg="#9494b8", font=("Arial", 14), command=lambda: ventanaGestionDeOrdenes(ventana))
 
     # Posicionar header
     headerPrincipal.grid(row=2, column=2, sticky="nsew")
@@ -37,11 +37,17 @@ def ventanaPrincipal():
 
     ventana.mainloop()
 
-def ventanaGestionDeProductos():
+def ventanaGestionDeProductos(ventanaAnterior):
+
+    ventana_gestionProductos_abierta = False
+
     global ventana_productos_abierta
 
     if ventana_productos_abierta:
         return
+    
+    # Cerramos la ventana principal
+    ventanaAnterior.withdraw()
 
     # Declarar ventana de gestion de productos
     ventana_productos_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
@@ -53,19 +59,103 @@ def ventanaGestionDeProductos():
     # Declarar grid de la ventana
     crearGridVentana(ventanaGestionDeProductos)
 
+    # Declarar header
+    headerPrincipal = tk.Label(ventanaGestionDeProductos, text="Gestion de productos", font=("Arial", 20, "bold"), bg="#d1d1e0")
+
+    # Declarar botones
+    verProducto = tk.Button(ventanaGestionDeProductos, text="Ver productos", bg="#9494b8", font=("Arial", 14), command=lambda: verProducto())
+    agregarProducto = tk.Button(ventanaGestionDeProductos, text="Agregar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+    modificarProducto = tk.Button(ventanaGestionDeProductos, text="Modificar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+    eliminarProducto = tk.Button(ventanaGestionDeProductos, text="Eliminar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+    consultasAvanzadas = tk.Button(ventanaGestionDeProductos, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+
+    # Posicionar header
+    headerPrincipal.grid(row=1, column=2, sticky="nsew")
+
+    # Posicionar botones
+    verProducto.grid(row=3, column=2, sticky="nsew")
+    agregarProducto.grid(row=5, column=2, sticky="nsew")
+    modificarProducto.grid(row=7, column=2, sticky="nsew")
+    eliminarProducto.grid(row=9, column=2, sticky="nswe")
+    consultasAvanzadas.grid(row=11, column=2, sticky="nswe")    
+    
     def on_close():
         global ventana_productos_abierta
         ventana_productos_abierta = False
         ventanaGestionDeProductos.destroy()
+        ventanaAnterior.deiconify()
 
     ventanaGestionDeProductos.protocol("WM_DELETE_WINDOW", on_close)
 
-def ventanaGestionDeClientes():
+    def verProducto():
+        global crearGridVentana
+        nonlocal ventana_gestionProductos_abierta
+
+        if ventana_gestionProductos_abierta:
+            return 
+        
+        ventanaGestionDeProductos.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionProductos_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaVerProducto = tk.Toplevel()
+        ventanaVerProducto.config(bg="#d1d1e0")
+        ventanaVerProducto.title("Gestion de productos")
+        ventanaVerProducto.geometry("450x500")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaVerProducto)
+
+        # Declarar header
+        headerPrincipal = tk.Label(ventanaVerProducto, text="Ver productos", font=("Arial", 20, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        verProducto = tk.Button(ventanaVerProducto, text="Ver productos", bg="#9494b8", font=("Arial", 14), command=lambda: verProducto())
+        agregarProducto = tk.Button(ventanaVerProducto, text="Agregar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+        modificarProducto = tk.Button(ventanaVerProducto, text="Modificar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+        eliminarProducto = tk.Button(ventanaVerProducto, text="Eliminar producto", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+        consultasAvanzadas = tk.Button(ventanaVerProducto, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+
+        # Posicionar header
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+
+        # Posicionar botones
+        verProducto.grid(row=3, column=2, sticky="nsew")
+        agregarProducto.grid(row=5, column=2, sticky="nsew")
+        modificarProducto.grid(row=7, column=2, sticky="nsew")
+        eliminarProducto.grid(row=9, column=2, sticky="nswe")
+        consultasAvanzadas.grid(row=11, column=2, sticky="nswe")    
+    
+        def on_close():
+            global ventana_productos_abierta
+            ventana_productos_abierta = False
+            ventanaGestionDeProductos.destroy()
+            ventanaAnterior.deiconify()
+
+            ventanaGestionDeProductos.protocol("WM_DELETE_WINDOW", on_close)
+
+
+    def agregarProducto():
+        pass
+
+    def modificarProducto():
+        pass
+
+    def eliminarProducto():
+        pass
+
+    def consultasAvanzadas():
+        pass
+
+def ventanaGestionDeClientes(ventanaAnterior):
     global ventana_clientes_abierta
 
     # Si la variable es True entonces significa que la ventana ya fue abierta entonces no queremos abrirla nuevamente por lo que vamos a hacer un return
     if ventana_clientes_abierta:
         return
+    
+    # Cerramos la ventana principal
+    ventanaAnterior.withdraw()
     
     # Declarar ventana de gestion de clientes
     ventana_clientes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
@@ -82,12 +172,16 @@ def ventanaGestionDeClientes():
         global ventana_clientes_abierta
         ventana_clientes_abierta = False
         ventanaGestionDeClientes.destroy()
+        ventanaAnterior.deiconify()
 
     ventanaGestionDeClientes.protocol("WM_DELETE_WINDOW", on_close)
 
-def ventanaGestionDeOrdenes():
+def ventanaGestionDeOrdenes(ventanaAnterior):
 
     global ventana_ordenes_abierta
+
+    # Cerramos la ventana principal
+    ventanaAnterior.withdraw()
 
     # Si la variable es True entonces significa que la ventana ya fue abierta entonces no queremos abrirla nuevamente por lo que vamos a hacer un return
     if ventana_ordenes_abierta:
@@ -108,6 +202,7 @@ def ventanaGestionDeOrdenes():
         global ventana_ordenes_abierta
         ventana_ordenes_abierta = False
         ventanaGestionDeOrdenes.destroy()
+        ventanaAnterior.deiconify()
 
     ventanaGestionDeOrdenes.protocol("WM_DELETE_WINDOW", on_close)
 
