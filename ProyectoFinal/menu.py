@@ -1,5 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, OptionMenu, StringVar, Text
+from conexion import BaseDeDatos
+from cliente import Cliente
+
+# Creamos la conexion a la base de datos
+db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
+db.conectar()
+
+# Creamos una instancia de la clase cliente para poder ejecutar las operaciones necesarias
+cliente_db = Cliente(db)
 
 # Con estas variables controlamos si una ventana esta abierta
 ventana_productos_abierta = False
@@ -59,7 +68,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
     ventanaGestionDeProductos = tk.Toplevel()
     ventanaGestionDeProductos.config(bg="#d1d1e0")
     ventanaGestionDeProductos.title("Gestion de productos")
-    ventanaGestionDeProductos.attributes('-fullscreen', True)
+    ventanaGestionDeProductos.state("zoomed")
 
     # Declarar grid de la ventana
     crearGridVentana(ventanaGestionDeProductos)
@@ -92,7 +101,9 @@ def ventanaGestionDeProductos(ventanaAnterior):
         global ventana_productos_abierta
         ventana_productos_abierta = False
         ventanaGestionDeProductos.destroy()
+        ventanaAnterior.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
         ventanaAnterior.deiconify()
+        
 
     ventanaGestionDeProductos.protocol("WM_DELETE_WINDOW", on_close)
 
@@ -109,7 +120,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
         ventanaVerProducto = tk.Toplevel()
         ventanaVerProducto.config(bg="#d1d1e0")
         ventanaVerProducto.title("Gestion de productos")
-        ventanaVerProducto.geometry("450x500")
+        ventanaVerProducto.state("zoomed")
 
         # Declarar grid de la ventana
         crearGridVentana(ventanaVerProducto)
@@ -118,6 +129,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
         headerPrincipal = tk.Label(ventanaVerProducto, text="Ver productos", font=("Arial", 20, "bold"), bg="#d1d1e0")
 
         # Declarar botones
+        botonVolver = tk.Button(ventanaVerProducto, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
 
         # Declarar dropdown
         eleccion = StringVar() # Declaramos la variable como string var para poder acceder a ella para definir los metodos usados para mostrar la tabla
@@ -126,7 +138,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
         
         # Declarar input textarea + boton buscar
         dropdownTextarea = Text(ventanaVerProducto, height=max, width=25)
-        botonBuscar = tk.Button(ventanaVerProducto, text="Aceptar", command=None)
+        botonBuscar = tk.Button(ventanaVerProducto, text="Aceptar", command=lambda: buscar(eleccion))
 
         # Declarar tabla
         tablaProductos = ttk.Treeview(ventanaVerProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings")
@@ -143,9 +155,9 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Posicionar header
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
-        
 
         # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
 
         # Posicionar dropdown
         dropdown.grid(row=3, column=1, sticky="ew")
@@ -156,13 +168,25 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Posicionar tabla
         tablaProductos.grid(row=4, column=2, rowspan=7, sticky="nsew")
-    
+
+        def buscar(eleccion):
+            if eleccion == 'id':
+                id_elegida = dropdownTextarea.get("1.0", "end").strip()
+                print(id_elegida)
+            elif eleccion == 'nombre':
+                nombre_elegido = dropdownTextarea.get("1.0", "end").strip()
+                print(nombre_elegido)
+            else:
+                categoria_elegida = dropdownTextarea.get("1.0", "end").strip()
+                print(categoria_elegida)
+
         def on_close():
             nonlocal ventana_gestionProductos_abierta
             ventana_gestionProductos_abierta = False
             ventanaVerProducto.destroy()
+            ventanaGestionDeProductos.state('zoomed') # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
             ventanaGestionDeProductos.deiconify()
-
+            
         ventanaVerProducto.protocol("WM_DELETE_WINDOW", on_close)
 
 

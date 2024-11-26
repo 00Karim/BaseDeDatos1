@@ -25,11 +25,21 @@ class BaseDeDatos:
         if self.conexion and self.conexion.is_connected():
             self.conexion.close()
             print("Conexion cerrada")
+        if self.cursor:
+            self.cursor.close()
 
-db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
-if db.conectar():
-    print("Database is ready to use.")
-else:
-    print("Failed to connect to the database.")
+    def ejecutar(self, query, valores=None):
+        self.cursor.execute(query, valores or ())
+        self.conexion.commit()
 
-db.desconectar()
+    def obtener_datos(self, query, valores=None):
+        self.cursor.execute(query, valores or ())
+        return self.cursor.fetchall()
+
+# db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
+# if db.conectar():
+#     print("Database is ready to use.")
+# else:
+#     print("Failed to connect to the database.")
+
+# db.desconectar()
