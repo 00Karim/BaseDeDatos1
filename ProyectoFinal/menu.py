@@ -1,14 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, OptionMenu, StringVar, Text
 from conexion import BaseDeDatos
-from cliente import Cliente
+from producto import Producto
 
 # Creamos la conexion a la base de datos
 db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
 db.conectar()
 
 # Creamos una instancia de la clase cliente para poder ejecutar las operaciones necesarias
-cliente_db = Cliente(db)
+producto_db = Producto(db)
 
 # Con estas variables controlamos si una ventana esta abierta
 ventana_productos_abierta = False
@@ -24,7 +24,7 @@ def ventanaPrincipal():
     ventana = tk.Tk()
     ventana.config(bg="#d1d1e0")
     ventana.title("Sistema de ventas en linea")
-    ventana.attributes('-fullscreen', True)
+    ventana.state("zoomed")
 
     # Declarar grid de la ventana principal
     crearGridVentana(ventana)
@@ -108,6 +108,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
     ventanaGestionDeProductos.protocol("WM_DELETE_WINDOW", on_close)
 
     def verProducto():
+        db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
         nonlocal ventana_gestionProductos_abierta
 
         if ventana_gestionProductos_abierta:
@@ -138,7 +139,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
         
         # Declarar input textarea + boton buscar
         dropdownTextarea = Text(ventanaVerProducto, height=max, width=25)
-        botonBuscar = tk.Button(ventanaVerProducto, text="Aceptar", command=lambda: buscar(eleccion))
+        botonBuscar = tk.Button(ventanaVerProducto, text="Aceptar", command=lambda: buscar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para buscar el cliente por el atributo que haya elegido
 
         # Declarar tabla
         tablaProductos = ttk.Treeview(ventanaVerProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings")
@@ -166,25 +167,29 @@ def ventanaGestionDeProductos(ventanaAnterior):
         dropdownTextarea.grid(row=3, column=2, sticky="we")
         botonBuscar.grid(row=3, column=3, sticky="w")
 
-        # Posicionar tabla
+        # Posicionar tabla + Llenar tabla con sus valores default
         tablaProductos.grid(row=4, column=2, rowspan=7, sticky="nsew")
+        
+        def llenar_tabla():
+            lista_productos = producto_db.verProductos()
+            for producto in lista_productos:
+                tablaProductos.insert("", "end", values=producto)
 
-        def buscar(eleccion):
-            if eleccion == 'id':
+        llenar_tabla()
+
+        def buscar():
+            if eleccion.get() == 'Id':
                 id_elegida = dropdownTextarea.get("1.0", "end").strip()
-                print(id_elegida)
-            elif eleccion == 'nombre':
+            elif eleccion.get() == 'Nombre':
                 nombre_elegido = dropdownTextarea.get("1.0", "end").strip()
-                print(nombre_elegido)
             else:
                 categoria_elegida = dropdownTextarea.get("1.0", "end").strip()
-                print(categoria_elegida)
 
         def on_close():
             nonlocal ventana_gestionProductos_abierta
             ventana_gestionProductos_abierta = False
             ventanaVerProducto.destroy()
-            ventanaGestionDeProductos.state('zoomed') # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeProductos.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
             ventanaGestionDeProductos.deiconify()
             
         ventanaVerProducto.protocol("WM_DELETE_WINDOW", on_close)

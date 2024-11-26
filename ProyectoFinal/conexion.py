@@ -33,8 +33,18 @@ class BaseDeDatos:
         self.conexion.commit()
 
     def obtener_datos(self, query, valores=None):
-        self.cursor.execute(query, valores or ())
-        return self.cursor.fetchall()
+        cursor = self.conexion.cursor()
+    
+        try:
+            cursor.execute(query, valores or ())
+            datos = cursor.fetchall()
+        except mysql.connector.Error as e:
+            print(f"Error executing query: {e}")
+            datos = []  # Return empty list in case of error
+        finally:
+            cursor.close()  # Ensure the cursor is closed after execution
+    
+        return datos
 
 # db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
 # if db.conectar():
