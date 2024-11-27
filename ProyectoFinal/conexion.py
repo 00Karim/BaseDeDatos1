@@ -31,6 +31,7 @@ class BaseDeDatos:
     def ejecutar(self, query, valores=None):
         self.cursor.execute(query, valores or ())
         self.conexion.commit()
+        self.cursor.close()
 
     def obtener_datos(self, query, valores=None):
         cursor = self.conexion.cursor()
@@ -40,9 +41,9 @@ class BaseDeDatos:
             datos = cursor.fetchall()
         except mysql.connector.Error as e:
             print(f"Error executing query: {e}")
-            datos = []  # Return empty list in case of error
+            datos = []  # Si hay un error deurante la ejecucion, devolvemos una lista vacia
         finally:
-            cursor.close()  # Ensure the cursor is closed after execution
+            cursor.close()  # Nos aseguramos que se cierre el cursor para poder usar otro cursor la proxima vez
     
         return datos
 

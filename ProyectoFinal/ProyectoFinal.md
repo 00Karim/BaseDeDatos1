@@ -256,17 +256,19 @@ DELIMITER ;
 
 # SQL Get producto por id o por nombre
 ```sql
-CREATE PROCEDURE ObtenerProductoPorID
+CREATE PROCEDURE ObtenerProductoPorId
 (
-    IN producto_id INT,
+    IN producto_id VARCHAR(5)
 )
-
 BEGIN
-    SELECT * FROM productos
-    WHERE id_producto = producto_id;
+    IF producto_id = '' THEN
+        SELECT * FROM productos;
+    ELSE
+        SELECT * FROM productos WHERE id_producto = CAST(producto_id AS UNSIGNED); # Con CAST podemos extraer el valor ingresado por el cliente y convertirlo a un int de manera que evita muchos errores. Por ejemplo, si el usuario ingresa texto en vez de un numero, el cast va a convertir este input a un 0.
+    END IF;
 END//
 
-DELIMITER;
+DELIMITER ;
 ```
 # -------------------------------------------------------------------------
 ```sql
@@ -279,7 +281,7 @@ CREATE PROCEDURE ObtenerProductoPorNombre
 
 BEGIN
     SELECT * FROM productos
-    WHERE nombre_producto LIKE CONCAT('%', producto_nombre, '%')
+    WHERE nombre LIKE CONCAT('%', producto_nombre, '%')
 END//
 
 DELIMITER;
@@ -295,7 +297,7 @@ CREATE PROCEDURE ObtenerProductoPorCategoria
 
 BEGIN
     SELECT * FROM productos
-    WHERE categoria_producto LIKE CONCAT('%', categoria_nombre, '%')
+    WHERE categoria LIKE CONCAT('%', categoria_nombre, '%');
 END//
 
 DELIMITER;
@@ -350,16 +352,13 @@ OUT resultado BOOL
         DECLARE existe INT;
         
         SELECT COUNT(*) INTO existe 
-        FROM productos WHERE # Que condicion, cuando se cumple, indicaria que 
-        esta instancia del objeto ya existe? Porque el id se asigna solo, entonces 
-        quizas podriamos chequear el nombre y darle la oportunidad al usuario de si 
-        quiere agregar el producto igualmente? Algo corte: "Ya existe un producto 
-        con ese nombre, deseas agregarlo igualmente?"
+        FROM productos WHERE productos.nombre = nombre;
         
         IF existe > 0 THEN
             SET resultado = FALSE; # El producto ya existe
         ELSE
-            INSERT INTO productos VALUES(nombre, cantidad_disponible, categoria);
+            INSERT INTO productos (nombre, cantidad_disponible, categoria, ventas_totales) 
+            VALUES(nombre, cantidad_disponible, categoria, 0);
             SET resultado = TRUE;
         END IF;
     END //
@@ -368,6 +367,7 @@ DELIMITER ;
 
 # SQL Modificar producto por id o por nombre
 ```sql
+
 ```
 
 ### Diseño pasado por https://dbdiagram.io/
