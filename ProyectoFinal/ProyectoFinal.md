@@ -96,7 +96,7 @@ Podriamos representar a cada tabla con un numero en vez de su nombre entero, per
 DELIMITER //
 CREATE PROCEDURE ObtenerTablas
 (
-    IN Tabla VARCHAR(10)
+    IN Tabla VARCHAR(20)
 )
     BEGIN
         IF Tabla = 'clientes' THEN
@@ -256,6 +256,7 @@ DELIMITER ;
 
 # SQL Get producto por id o por nombre
 ```sql
+DELIMITER //
 CREATE PROCEDURE ObtenerProductoPorId
 (
     IN producto_id VARCHAR(5)
@@ -372,4 +373,86 @@ DELIMITER ;
 
 ### Diseño pasado por https://dbdiagram.io/
 
+
+# SQL Obtener orden por id_orden
+```sql
+DELIMITER //
+CREATE PROCEDURE ObtenerOrdenPorId
+(
+    IN orden_id VARCHAR(10)
+)
+BEGIN
+    IF orden_id = '' THEN
+        SELECT * FROM ordenesdecompra;
+    ELSE
+        SELECT * FROM ordenesdecompra WHERE id_orden = CAST(orden_id AS UNSIGNED); # Con CAST podemos extraer el valor ingresado por el cliente y convertirlo a un int de manera que evita muchos errores. Por ejemplo, si el usuario ingresa texto en vez de un numero, el cast va a convertir este input a un 0.
+    END IF;
+END//
+DELIMITER ;
+```
+
+# SQL Obtener orden por id_producto
+```sql
+DELIMITER //
+CREATE PROCEDURE ObtenerOrdenPorIdProducto
+(
+    IN producto_id VARCHAR(10)
+)
+BEGIN
+    IF producto_id = '' THEN
+        SELECT * FROM ordenesdecompra;
+    ELSE
+        SELECT * FROM ordenesdecompra WHERE id_producto = CAST(producto_id AS UNSIGNED); # Con CAST podemos extraer el valor ingresado por el cliente y convertirlo a un int de manera que evita muchos errores. Por ejemplo, si el usuario ingresa texto en vez de un numero, el cast va a convertir este input a un 0.
+    END IF;
+END//
+DELIMITER ;
+```
+
+# SQL Obtener orden por dni_cliente
+```sql
+DELIMITER //
+CREATE PROCEDURE ObtenerOrdenPorDniCliente
+(
+    IN cliente_dni VARCHAR(10)
+)
+BEGIN
+    IF cliente_dni = '' THEN
+        SELECT * FROM ordenesdecompra;
+    ELSE
+        SELECT * FROM ordenesdecompra WHERE dni_cliente = CAST(cliente_dni AS UNSIGNED); # Con CAST podemos extraer el valor ingresado por el cliente y convertirlo a un int de manera que evita muchos errores. Por ejemplo, si el usuario ingresa texto en vez de un numero, el cast va a convertir este input a un 0.
+    END IF;
+END//
+DELIMITER ;
+```
+
+# SQL Agregar Orden
+```sql
+DELIMITER //
+CREATE PROCEDURE AgregarOrden
+(
+IN cliente_dni VARCHAR(150),
+IN producto_id INT,
+IN cantidad_pedido VARCHAR(150),
+IN fecha DATE, 
+OUT resultado BOOL
+)
+	BEGIN
+		IF cantidad_pedido < 0 THEN
+			SET resultado = FALSE; # -- La cantidad del pedido no puede ser negativa
+		ELSEIF (SELECT cantidad_disponible FROM productos WHERE id_producto = producto_id) - cantidad_pedido < 0 THEN
+			SET resultado = FALSE; # -- No hay stock suficiente
+		ELSEIF (SELECT COUNT(*) FROM productos WHERE id_producto = producto_id) = 0 THEN
+			SET resultado = FALSE; -- No hay producto con ese id
+		ELSEIF (SELECT COUNT(*) FROM clientes WHERE dni_cliente = cliente_dni) = 0 THEN
+			SET resultado = FALSE; -- No hay cliente con ese dni
+		ELSE
+			INSERT INTO ordenesdecompra (dni_cliente, id_producto, cantidad, fecha) 
+			VALUES(cliente_dni, producto_id, cantidad_pedido, fecha); -- Agregamos la orden
+            UPDATE productos SET cantidad_disponible = cantidad_disponible - cantidad_pedido
+            WHERE id_producto = producto_id; -- Disminuimos el stock del producto acorde al tamano del pedido
+            SET resultado = TRUE;
+		END IF;
+    END //
+DELIMITER ; 
+```
     

@@ -8,8 +8,9 @@ from orden import Orden
 db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
 db.conectar()
 
-# Creamos una instancia de la clase cliente para poder ejecutar las operaciones necesarias
+# Creamos instancias de las clases producto, orden y cliente para poder ejecutar las operaciones necesarias
 producto_db = Producto(db)
+orden_db = Orden(db)
 
 # Con estas variables controlamos si una ventana esta abierta
 ventana_productos_abierta = False
@@ -54,7 +55,7 @@ def ventanaPrincipal():
 
 def ventanaGestionDeProductos(ventanaAnterior):
 
-    ventana_gestionProductos_abierta = False
+    ventana_gestionProductos_abierta = False # Esta variable es para definir cuando las ventanas dentro de la ventana gestion de productos fueron abiertas y asi no podemos abrirlas mas de 1 vez
 
     global ventana_productos_abierta
 
@@ -145,16 +146,16 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Declarar tabla
         tablaProductos = ttk.Treeview(ventanaVerProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings")
-        tablaProductos.heading("id_producto", text="Id del producto")
-        tablaProductos.heading("nombre", text="Nombre")
-        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible")
-        tablaProductos.heading("categoria", text="Categoria")
-        tablaProductos.heading("ventas_totales", text="Ventas totales")
-        tablaProductos.column("id_producto", width=80)
-        tablaProductos.column("nombre", width=130)
-        tablaProductos.column("cantidad_disponible", width=100)
-        tablaProductos.column("categoria", width=130)
-        tablaProductos.column("ventas_totales", width=100)
+        tablaProductos.heading("id_producto", text="Id del producto", anchor="center")
+        tablaProductos.heading("nombre", text="Nombre", anchor="center")
+        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible", anchor="center")
+        tablaProductos.heading("categoria", text="Categoria", anchor="center")
+        tablaProductos.heading("ventas_totales", text="Ventas totales", anchor="center")
+        tablaProductos.column("id_producto", width=80, anchor="center")
+        tablaProductos.column("nombre", width=130, anchor="center")
+        tablaProductos.column("cantidad_disponible", width=100, anchor="center")
+        tablaProductos.column("categoria", width=130, anchor="center")
+        tablaProductos.column("ventas_totales", width=100, anchor="center")
 
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
@@ -197,7 +198,6 @@ def ventanaGestionDeProductos(ventanaAnterior):
             for producto in productos_seleccionados:
                     tablaProductos.insert("", "end", values=producto)
 
-
         def on_close():
             nonlocal ventana_gestionProductos_abierta
             ventana_gestionProductos_abierta = False
@@ -206,7 +206,6 @@ def ventanaGestionDeProductos(ventanaAnterior):
             ventanaGestionDeProductos.deiconify()
             
         ventanaVerProducto.protocol("WM_DELETE_WINDOW", on_close)
-
 
     def agregarProducto():
         db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
@@ -250,16 +249,16 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Declarar tabla
         tablaProductos = ttk.Treeview(ventanaAgregarProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings", height=15)
-        tablaProductos.heading("id_producto", text="Id del producto")
-        tablaProductos.heading("nombre", text="Nombre")
-        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible")
-        tablaProductos.heading("categoria", text="Categoria")
-        tablaProductos.heading("ventas_totales", text="Ventas totales")
-        tablaProductos.column("id_producto", width=80)
-        tablaProductos.column("nombre", width=130)
-        tablaProductos.column("cantidad_disponible", width=100)
-        tablaProductos.column("categoria", width=130)
-        tablaProductos.column("ventas_totales", width=100)
+        tablaProductos.heading("id_producto", text="Id del producto", anchor="center")
+        tablaProductos.heading("nombre", text="Nombre", anchor="center")
+        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible", anchor="center")
+        tablaProductos.heading("categoria", text="Categoria", anchor="center")
+        tablaProductos.heading("ventas_totales", text="Ventas totales", anchor="center")
+        tablaProductos.column("id_producto", width=80, anchor="center")
+        tablaProductos.column("nombre", width=130, anchor="center")
+        tablaProductos.column("cantidad_disponible", width=100, anchor="center")
+        tablaProductos.column("categoria", width=130, anchor="center")
+        tablaProductos.column("ventas_totales", width=100, anchor="center")
 
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
@@ -365,16 +364,16 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Declarar tabla
         tablaProductos = ttk.Treeview(ventanaModificarProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings", height=15)
-        tablaProductos.heading("id_producto", text="Id del producto")
-        tablaProductos.heading("nombre", text="Nombre")
-        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible")
-        tablaProductos.heading("categoria", text="Categoria")
-        tablaProductos.heading("ventas_totales", text="Ventas totales")
-        tablaProductos.column("id_producto", width=80)
-        tablaProductos.column("nombre", width=130)
-        tablaProductos.column("cantidad_disponible", width=100)
-        tablaProductos.column("categoria", width=130)
-        tablaProductos.column("ventas_totales", width=100)
+        tablaProductos.heading("id_producto", text="Id del producto", anchor="center")
+        tablaProductos.heading("nombre", text="Nombre", anchor="center")
+        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible", anchor="center")
+        tablaProductos.heading("categoria", text="Categoria", anchor="center")
+        tablaProductos.heading("ventas_totales", text="Ventas totales", anchor="center")
+        tablaProductos.column("id_producto", width=80, anchor="center")
+        tablaProductos.column("nombre", width=130, anchor="center")
+        tablaProductos.column("cantidad_disponible", width=100, anchor="center")
+        tablaProductos.column("categoria", width=130, anchor="center")
+        tablaProductos.column("ventas_totales", width=100, anchor="center")
 
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
@@ -465,16 +464,16 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Declarar tabla
         tablaProductos = ttk.Treeview(ventanaEliminarProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings", height=15)
-        tablaProductos.heading("id_producto", text="Id del producto")
-        tablaProductos.heading("nombre", text="Nombre")
-        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible")
-        tablaProductos.heading("categoria", text="Categoria")
-        tablaProductos.heading("ventas_totales", text="Ventas totales")
-        tablaProductos.column("id_producto", width=80)
-        tablaProductos.column("nombre", width=130)
-        tablaProductos.column("cantidad_disponible", width=100)
-        tablaProductos.column("categoria", width=130)
-        tablaProductos.column("ventas_totales", width=100)
+        tablaProductos.heading("id_producto", text="Id del producto", anchor="center")
+        tablaProductos.heading("nombre", text="Nombre", anchor="center")
+        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible", anchor="center")
+        tablaProductos.heading("categoria", text="Categoria", anchor="center")
+        tablaProductos.heading("ventas_totales", text="Ventas totales", anchor="center")
+        tablaProductos.column("id_producto", width=80, anchor="center")
+        tablaProductos.column("nombre", width=130, anchor="center")
+        tablaProductos.column("cantidad_disponible", width=100, anchor="center")
+        tablaProductos.column("categoria", width=130, anchor="center")
+        tablaProductos.column("ventas_totales", width=100, anchor="center")
 
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
@@ -555,14 +554,16 @@ def ventanaGestionDeClientes(ventanaAnterior):
 
 def ventanaGestionDeOrdenes(ventanaAnterior):
 
+    ventana_gestionOrdenes_abierta = False # Esta variable es para definir cuando las ventanas dentro de la ventana gestion de ordenes fueron abiertas y asi no podemos abrirlas mas de 1 vez
+
     global ventana_ordenes_abierta
-
-    # Cerramos la ventana principal
-    ventanaAnterior.withdraw()
-
+   
     # Si la variable es True entonces significa que la ventana ya fue abierta entonces no queremos abrirla nuevamente por lo que vamos a hacer un return
     if ventana_ordenes_abierta:
         return
+    
+    # Cerramos la ventana principal
+    ventanaAnterior.withdraw()
 
     # Declarar ventana de gestion de ordenes
     ventana_ordenes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
@@ -609,10 +610,218 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
     ventanaGestionDeOrdenes.protocol("WM_DELETE_WINDOW", on_close)
 
     def verOrdenes():
-        pass
+        db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+        nonlocal ventana_gestionOrdenes_abierta
+
+        if ventana_gestionOrdenes_abierta:
+            return 
+        
+        ventanaGestionDeOrdenes.withdraw()
+
+        # Declarar ventana de gestion de Ordeness
+        ventana_gestionOrdenes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaVerOrdenes = tk.Toplevel()
+        ventanaVerOrdenes.config(bg="#d1d1e0")
+        ventanaVerOrdenes.title("Gestion de ordenes")
+        ventanaVerOrdenes.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaVerOrdenes)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaVerOrdenes, text="Ver Ordenes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaVerOrdenes, text="Elige un atributo por el cual filtrar la busqueda de ordenes", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar dropdown
+        eleccion = StringVar() # Declaramos la variable como string var para poder acceder a ella para definir los metodos usados para mostrar la tabla
+        eleccion.set("id_orden")
+        dropdown = OptionMenu(ventanaVerOrdenes, eleccion, "id_orden", "dni_cliente", "id_producto")
+        
+        # Declarar input textarea + boton buscar
+        dropdownTextarea = Text(ventanaVerOrdenes, height=max, width=25)
+        botonBuscar = tk.Button(ventanaVerOrdenes, text="Buscar", command=lambda: buscar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para buscar el cliente por el atributo que haya elegido
+
+        # Declarar tabla
+        tablaOrdenes = ttk.Treeview(ventanaVerOrdenes, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha"), show="headings")
+        tablaOrdenes.heading("id_orden", text="Id de orden", anchor="center")
+        tablaOrdenes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaOrdenes.heading("id_producto", text="Id del producto", anchor="center")
+        tablaOrdenes.heading("cantidad", text="Cantidad", anchor="center")
+        tablaOrdenes.heading("fecha", text="Fecha", anchor="center")
+        tablaOrdenes.column("id_orden", width=80, anchor="center")
+        tablaOrdenes.column("dni_cliente", width=80, anchor="center")
+        tablaOrdenes.column("id_producto", width=80, anchor="center")
+        tablaOrdenes.column("cantidad", width=80, anchor="center")
+        tablaOrdenes.column("fecha", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew") 
+        print("LLEGUE HASTA ACA 1")
+        # Posicionar dropdown
+        dropdown.grid(row=3, column=1, sticky="ew")
+
+        # Posicionar input textarea + boton buscar
+        dropdownTextarea.grid(row=3, column=2, sticky="we")
+        botonBuscar.grid(row=3, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaOrdenes.grid(row=4, column=2, rowspan=7, sticky="nsew")
+        
+        def llenar_tabla():
+            lista_ordenes = orden_db.verOrdenes()
+            for orden in lista_ordenes:
+                print(orden)
+                tablaOrdenes.insert("", "end", values=orden)
+        
+        llenar_tabla() # Empezamos llenando la tabla con todos los valores
+        
+        # Una vez que el usuario eliga un atributo para filtrar la busqueda y toque aceptar, dependiendo de que atributo eligio y el valor que ingreso, vamos a hacer una busqueda y luego a insertar los valores devueltos en la tabla
+        
+        def buscar():
+            db.conectar() # Nuevamente, por alguna razon se desconecta la bdd despues de ejecutar el codigo, por lo que vamos a conectarnos nuevamente cuando se llame a esta funcion
+            tablaOrdenes.delete(*tablaOrdenes.get_children())
+            if eleccion.get() == "id_orden":
+                id_orden_elegida = dropdownTextarea.get("1.0", "end").strip()
+                ordenes_seleccionados = orden_db.verOrdenPorAtributo(id_orden=(id_orden_elegida,))
+            elif eleccion.get() == "dni_cliente":
+                dni_cliente_elegido = dropdownTextarea.get("1.0", "end").strip()
+                ordenes_seleccionados = orden_db.verOrdenPorAtributo(dni_cliente=(dni_cliente_elegido,))
+            else:
+                id_producto_elegido = dropdownTextarea.get("1.0", "end").strip()
+                ordenes_seleccionados = orden_db.verOrdenPorAtributo(id_producto=(id_producto_elegido,))
+
+            for orden in ordenes_seleccionados:
+                    tablaOrdenes.insert("", "end", values=orden)
+        
+        # Declarar botones
+        botonVolver = tk.Button(ventanaVerOrdenes, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+        botonVolver.grid(row= 11, column=3, sticky="e")
+        
+        def on_close():
+            nonlocal ventana_gestionOrdenes_abierta
+            ventana_gestionOrdenes_abierta = False
+            ventanaVerOrdenes.destroy()
+            ventanaGestionDeOrdenes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeOrdenes.deiconify()
+        
+        ventanaVerOrdenes.protocol("WM_DELETE_WINDOW", on_close)
+        
 
     def agregarOrden():
-        pass
+        db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+        nonlocal ventana_gestionOrdenes_abierta
+
+        if ventana_gestionOrdenes_abierta:
+            return 
+        
+        ventanaGestionDeOrdenes.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionOrdenes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaAgregarOrden = tk.Toplevel()
+        ventanaAgregarOrden.config(bg="#d1d1e0")
+        ventanaAgregarOrden.title("Gestion de Ordenes")
+        ventanaAgregarOrden.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaAgregarOrden)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaAgregarOrden, text="Agregar ordenes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaAgregarOrden, text="Ingresa los valores la nueva orden", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaAgregarOrden, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+        # Declarar label de atributos para agregar
+        labelIdProducto = tk.Label(ventanaAgregarOrden, text="Id producto: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelDniCliente = tk.Label(ventanaAgregarOrden, text="DNI cliente: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelCantidad = tk.Label(ventanaAgregarOrden, text="Cantidad del producto: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelFecha = tk.Label(ventanaAgregarOrden, text="Fecha: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        
+        # Declarar input textarea + boton buscar
+        textareaIdProducto = Text(ventanaAgregarOrden, height=max, width=25)
+        textAreaDniCliente = Text(ventanaAgregarOrden, height=max, width=25)
+        textareaCantidad = Text(ventanaAgregarOrden, height=max, width=25)
+        textAreaFecha = Text(ventanaAgregarOrden, height=max, width=25)
+        botonAgregar = tk.Button(ventanaAgregarOrden, text="Agregar", command=lambda: agregar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
+
+        # Declarar tabla
+        tablaOrdenes = ttk.Treeview(ventanaAgregarOrden, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha"), show="headings")
+        tablaOrdenes.heading("id_orden", text="Id de orden", anchor="center")
+        tablaOrdenes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaOrdenes.heading("id_producto", text="Id del producto", anchor="center")
+        tablaOrdenes.heading("cantidad", text="Cantidad", anchor="center")
+        tablaOrdenes.heading("fecha", text="Fecha", anchor="center")
+        tablaOrdenes.column("id_orden", width=80, anchor="center")
+        tablaOrdenes.column("dni_cliente", width=80, anchor="center")
+        tablaOrdenes.column("id_producto", width=80, anchor="center")
+        tablaOrdenes.column("cantidad", width=80, anchor="center")
+        tablaOrdenes.column("fecha", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+
+        # Posicionar label de atributos para agregar
+        labelIdProducto.grid(row=3, column=1, sticky="e")
+        labelDniCliente.grid(row=4, column=1, sticky="e")
+        labelCantidad.grid(row=5, column=1, sticky="e")
+        labelFecha.grid(row=6, column=1, sticky="e")
+
+        # Posicionar input textarea + dropdownCategoria + boton agregar
+        textareaIdProducto.grid(row=3, column=2, sticky="we")
+        textAreaDniCliente.grid(row=4, column=2, sticky="we")
+        textareaCantidad.grid(row=5, column=2, sticky="we")
+        textAreaFecha.grid(row=6, column=2, sticky="we")
+        
+        botonAgregar.grid(row=7, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaOrdenes.grid(row=8, column=2, sticky="nsew")
+
+        def popup_error():
+            popup_error = tk.Toplevel()
+            popup_error.title("Error!")
+            popup_error.geometry("300x150")
+            mensaje = tk.Label(popup_error, text="Error, ya existe un orden\ncon ese id!", font=("Arial", 14))
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+       
+        def llenar_tabla():
+            lista_ordenes = orden_db.verOrdenes()
+            for orden in lista_ordenes:
+                tablaOrdenes.insert("", "end", values=orden)
+
+        llenar_tabla()
+
+        def agregar():
+            db.conectar()
+            nombre_ingresado = textareaNombre.get("1.0", "end").strip()
+            cantidad_ingresada = int(textareaCantidadDisponible.get("1.0", "end").strip())
+            categoria_ingresada = eleccion.get()
+            if orden_db.agregarOrden(nombre_ingresado, cantidad_ingresada, categoria_ingresada):
+                tablaOrdenes.delete(*tablaOrdenes.get_children())
+                llenar_tabla()
+                print("Se agrego una orden correctamente")
+            else:
+                popup_error()
+
+        def on_close():
+            nonlocal ventana_gestionOrdenes_abierta
+            ventana_gestionOrdenes_abierta = False
+            ventanaAgregarOrden.destroy()
+            ventanaGestionDeOrdenes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeOrdenes.deiconify()
+            
+        ventanaAgregarOrden.protocol("WM_DELETE_WINDOW", on_close)
 
     def modificarOrden():
         pass
