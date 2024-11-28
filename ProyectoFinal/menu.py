@@ -802,6 +802,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
 
         llenar_tabla()
 
+        # ESTO ESTA COPIADO DE AGREGARPRODUCTO, FALTA CAMBIARLE COSAS. ESTA 0 AVANZADO, PERO EL FORMATO SE QUEDA IGUAL ASI QUE LO DEJO ASI
         def agregar():
             db.conectar()
             nombre_ingresado = textareaNombre.get("1.0", "end").strip()
