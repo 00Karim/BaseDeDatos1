@@ -29,3 +29,23 @@ class Orden:
         resultado = self.db.obtener_datos(queryResultado)[0][0] # Extraemos el primer elemento del primer tuple
 
         return resultado # Es True si se agrega la orden y False si el no existe el id producto, dni o si el producto no tiene suficiente stock. DESPUES, EN MENU.PY ESTE OUTPUT CAUSA DISTINTOS EFECTOS
+
+    def modificarOrdenPorId(self, id_orden, dni_cliente, id_producto, cantidad, fecha):
+        query = "CALL ModificarOrdenPorId(%s, %s, %s, %s, %s, @resultado)"
+        valores = (id_orden, dni_cliente, id_producto, cantidad, fecha)
+        self.db.ejecutar(query, valores)
+
+        queryResultado = "SELECT @resultado"
+        resultado = self.db.obtener_datos(queryResultado)[0][0]
+
+        return resultado # Es True si se modifica el producto y False si no hay producto con ese id. DESPUES, EN MENU.PY ESTE OUTPUT CAUSA DISTINTOS EFECTOS
+
+def Tester():
+    bdd = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
+    bdd.conectar()
+    db = Orden(bdd)
+
+    print(db.agregarOrden(45378901, 9, 1, "2024-11-02"))
+
+if __name__ == '__main__':
+    Tester()

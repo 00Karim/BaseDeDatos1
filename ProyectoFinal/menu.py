@@ -784,7 +784,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaOrdenes.grid(row=8, column=2, sticky="nsew")
 
-        def popup_error():
+        def popup_error(): # hacer una lista de posibles errores en esta seccion del codigo
             popup_error = tk.Toplevel()
             popup_error.title("Error!")
             popup_error.geometry("300x150")
