@@ -162,16 +162,13 @@ DELIMITER ;
 DELIMITER //
 CREATE PROCEDURE ObtenerClientePorDni
 (
-    IN dni VARCHAR(20),
-    OUT resultado BOOLEAN
+    IN dni VARCHAR(20)
 )
 BEGIN
     IF dni = '' THEN
         SELECT * FROM clientes;
-        SET resultado = FALSE;
     ELSE
         SELECT * FROM productos WHERE id_producto = CAST(producto_id AS UNSIGNED); # Con CAST podemos extraer el valor ingresado por el cliente y convertirlo a un int de manera que evita muchos errores. Por ejemplo, si el usuario ingresa texto en vez de un numero, el cast va a convertir este input a un 0.
-		SET resultado = FALSE;
     END IF;
 END//
 DELIMITER ; 
@@ -182,16 +179,10 @@ DELIMITER //
 CREATE PROCEDURE ObtenerClientePorNombre
 (
 IN nombre_input VARCHAR(150),
-OUT resultado BOOLEAN
 )
     BEGIN
         SELECT * FROM clientes
         WHERE nombre LIKE CONCAT('%', nombre_input, '%');
-        IF ROW_COUNT() > 0 THEN
-            SET resultado = TRUE;
-        ELSE 
-            SET resultado = FALSE; # El cliente no existe 
-        END IF;
     END //
 DELIMITER ;
 ```
@@ -206,11 +197,6 @@ OUT resultado BOOLEAN
     BEGIN
         SELECT * FROM clientes
         WHERE apellido LIKE CONCAT('%', apellido_input, '%');
-        IF ROW_COUNT() > 0 THEN
-            SET resultado = TRUE;
-        ELSE 
-            SET resultado = FALSE; # El cliente no existe 
-        END IF;
     END //
 DELIMITER ;
 ```
@@ -394,20 +380,22 @@ CREATE PROCEDURE AgregarProducto
 IN nombre VARCHAR(150),
 IN cantidad_disponible INT,
 IN categoria VARCHAR(150),
-OUT resultado BOOL
+OUT resultado INT
 )
-    BEGIN
+BEGIN
         DECLARE existe INT;
         
         SELECT COUNT(*) INTO existe 
         FROM productos WHERE productos.nombre = nombre;
         
         IF existe > 0 THEN
-            SET resultado = FALSE; # El producto ya existe
+            SET resultado = 1; # Ya hay un producto con ese nombre
+		ELSEIF cantidad_disponible < 0 THEN
+			SET resultado = 2; # La cantidad disponible no puede ser negativa
         ELSE
             INSERT INTO productos (nombre, cantidad_disponible, categoria, ventas_totales) 
             VALUES(nombre, cantidad_disponible, categoria, 0);
-            SET resultado = TRUE;
+            SET resultado = 3;
         END IF;
     END //
 DELIMITER ; 
@@ -421,23 +409,32 @@ IN id INT,
 IN nombre_nuevo VARCHAR(150),
 IN cantidad_disponible_nueva INT,
 IN categoria_nueva VARCHAR(150),
-OUT resultado BOOLEAN
+OUT resultado INT
 )
 BEGIN
-		IF cantidad_disponible_nueva < 0 THEN
-			SET resultado = FALSE; -- la nueva cantidad disponible no puede ser menor a 0
-		ELSE
-			UPDATE productos
-			SET nombre = nombre_nuevo, cantidad_disponible = cantidad_disponible_nueva, categoria = categoria_nueva 
-			WHERE productos.id_producto = id;
-    
-			IF ROW_COUNT() > 0 THEN
-				SET resultado = TRUE;
-			ELSE 
-				SET resultado = FALSE; -- El cliente no existe o hubo un error durante la ejecucion 
-			END IF;
-		END IF;
-    END //
+    IF cantidad_disponible_nueva < 0 THEN
+        SET resultado = 1; -- La cantidad nueva no puede ser menor a 0
+	ELSEIF (SELECT COUNT(*) FROM productos WHERE id_producto = id)  = 0 THEN
+		SET resultado = 2; -- El producto elegido no existe
+    ELSE
+        UPDATE productos
+        SET 
+            nombre = CASE 
+                        WHEN nombre_nuevo != '' THEN nombre_nuevo 
+                        ELSE nombre 
+                     END,
+            cantidad_disponible = CASE 
+                                     WHEN cantidad_disponible_nueva IS NOT NULL THEN cantidad_disponible_nueva 
+                                     ELSE cantidad_disponible 
+                                  END,
+            categoria = CASE 
+                           WHEN categoria_nueva != '' THEN categoria_nueva 
+                           ELSE categoria 
+                        END
+        WHERE productos.id_producto = id;
+        SET resultado = 3; -- Exito, se modifico correctamente
+    END IF;
+END //
 DELIMITER ;
 ```
 
@@ -504,23 +501,23 @@ IN cliente_dni VARCHAR(150),
 IN producto_id INT,
 IN cantidad_pedido VARCHAR(150),
 IN fecha DATE, 
-OUT resultado BOOL
+OUT resultado INT
 )
-	BEGIN
+BEGIN
 		IF cantidad_pedido < 0 THEN
-			SET resultado = FALSE; # -- La cantidad del pedido no puede ser negativa
+			SET resultado = 1; # -- La cantidad del pedido no puede ser negativa
 		ELSEIF (SELECT cantidad_disponible FROM productos WHERE id_producto = producto_id) - cantidad_pedido < 0 THEN
-			SET resultado = FALSE; # -- No hay stock suficiente
+			SET resultado = 2; # -- No hay stock suficiente
 		ELSEIF (SELECT COUNT(*) FROM productos WHERE id_producto = producto_id) = 0 THEN
-			SET resultado = FALSE; -- No hay producto con ese id
+			SET resultado = 3; -- No hay producto con ese id
 		ELSEIF (SELECT COUNT(*) FROM clientes WHERE dni_cliente = cliente_dni) = 0 THEN
-			SET resultado = FALSE; -- No hay cliente con ese dni
+			SET resultado = 4; -- No hay cliente con ese dni
 		ELSE
 			INSERT INTO ordenesdecompra (dni_cliente, id_producto, cantidad, fecha) 
 			VALUES(cliente_dni, producto_id, cantidad_pedido, fecha); -- Agregamos la orden
-            UPDATE productos SET cantidad_disponible = cantidad_disponible - cantidad_pedido, ventas_totales = ventas_totales + cantidad_pedido
-            WHERE id_producto = producto_id; -- Disminuimos el stock del producto y aumentamos sus ventas totales acorde al tamanio del pedido 
-            SET resultado = TRUE;
+            UPDATE productos SET cantidad_disponible = cantidad_disponible - cantidad_pedido
+            WHERE id_producto = producto_id; -- Disminuimos el stock del producto acorde al tamano del pedido
+            SET resultado = 5; -- Exito
 		END IF;
     END //
 DELIMITER ; 

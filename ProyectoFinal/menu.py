@@ -28,6 +28,31 @@ def crearGridVentana(ventanaActual: tk.Tk):
     ventanaActual.columnconfigure((0, 1, 2, 3, 4), weight=1)
     ventanaActual.rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), weight=1)
 
+def crearErrorPopUp(mensaje, color = "#D8000C", tamanio = "300x150"): # El color y el tamanio son siempre los mismos a menos que el error vaya a ser una advertencia o si tiene que cambiar el tamanio, entonces ahi vamos a ingresar los parametros cuando llamamos a la funcion
+    popup_error = tk.Toplevel()
+    popup_error.title("Error!")
+    popup_error.geometry(tamanio)
+    mensaje = tk.Label(popup_error, text=mensaje, font=("Arial", 14))
+    mensaje.config(fg=color)
+    mensaje.pack(pady=20)
+    
+    # extraemos el tamanio de la pantalla del sistema asi podemos encontrar el centro de ambos ejes (x, y) y asi encontrar el centro de la pantalla
+    ancho_pantalla = popup_error.winfo_screenwidth()
+    alto_pantalla = popup_error.winfo_screenheight()
+
+    # definimos que tamanio va a tener el popup extrayendo los valores en la variable tamanio. Dividimos el string en 2 a partir de la x y asi sabemos el ancho y el largo por separado
+    ancho_popup, alto_popup = map(int, tamanio.split("x"))
+
+    # calculamos cuanto espacio necesita el popup para entrar en el medio 
+    x_centrado = (ancho_pantalla // 2) - (ancho_popup // 2)
+    y_centrado = (alto_pantalla // 2) - (alto_popup // 2)
+
+    # configuramos la geometria del popup para adquirir el tamanio que le dio el usuario y las posiciones de x e y que calculamos antes
+    popup_error.geometry(f"{tamanio}+{x_centrado}+{y_centrado}")
+
+    boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+    boton_cerrar.pack()
+
 def ventanaPrincipal():
     # Declarar ventana principal
     ventana = tk.Tk()
@@ -287,17 +312,6 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaProductos.grid(row=8, column=2, sticky="nsew")
-
-        def popup_error():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("300x150")
-            mensaje = tk.Label(popup_error, text="Error, ya existe un producto\ncon ese nombre!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
        
         def llenar_tabla():
             lista_productos = producto_db.verProductos()
@@ -309,14 +323,20 @@ def ventanaGestionDeProductos(ventanaAnterior):
         def agregar():
             db.conectar()
             nombre_ingresado = textareaNombre.get("1.0", "end").strip()
-            cantidad_ingresada = int(textareaCantidadDisponible.get("1.0", "end").strip())
+            cantidad_ingresada = textareaCantidadDisponible.get("1.0", "end").strip()
             categoria_ingresada = eleccion.get()
-            if producto_db.agregarProducto(nombre_ingresado, cantidad_ingresada, categoria_ingresada):
-                tablaProductos.delete(*tablaProductos.get_children())
-                llenar_tabla()
-                print("Se agrego un producto correctamente")
+            if nombre_ingresado == '' or cantidad_ingresada == '' or categoria_ingresada == '': # Si algun parametro esta vacio, no vale la pena ejecutar el codigo y asi nos evitamos errores innecesarios
+                crearErrorPopUp("Atencion, falta ingresar algun\nparametro", color="#FFC107")
             else:
-                popup_error()
+                resultado = producto_db.agregarProducto(nombre_ingresado, cantidad_ingresada, categoria_ingresada)
+                if resultado == 1:
+                    crearErrorPopUp("Error, ya existe un producto\ncon ese nombre")
+                elif resultado == 2:
+                    crearErrorPopUp("Error, la cantidad no puede\nser negativa")
+                elif resultado == 3:
+                    tablaProductos.delete(*tablaProductos.get_children())
+                    llenar_tabla()
+                    crearErrorPopUp("Producto agregado correctamente!", color="#4CAF50") # Tambien podemos usar la funcion para crear popups de exito
 
         def on_close():
             nonlocal ventana_gestionProductos_abierta
@@ -404,17 +424,6 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaProductos.grid(row=8, column=2, sticky="nsew")
-
-        def popup_error():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("450x100")
-            mensaje = tk.Label(popup_error, text="1 - Error, no existe un producto con ese id!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
        
         def llenar_tabla():
             lista_productos = producto_db.verProductos()
@@ -431,12 +440,15 @@ def ventanaGestionDeProductos(ventanaAnterior):
             categoria_nueva = eleccion.get()
             if cantidad_nueva == "":
                 cantidad_nueva = None # Tenemos que convertir cantidad nueva a none si el usuario no ingreso nada para que se traduzca a Null en sql y asi directamente no actualizamos la cantidad y la dejamos como esta
-            if producto_db.modificarProductoPorId(id_AModificar, nombre_nuevo, cantidad_nueva, categoria_nueva): # DATO: decidimos que las ventas totales no se pueden actualizar aca ya que se actualizan solas cuando se efectua una orden nueva
+            resultado = producto_db.modificarProductoPorId(id_AModificar, nombre_nuevo, cantidad_nueva, categoria_nueva) # DATO: decidimos que las ventas totales no se pueden actualizar aca ya que se actualizan solas cuando se efectua una orden nueva
+            if resultado == 1:
+                crearErrorPopUp("Error, la cantidad nueva no\npuede ser menor a 0!")
+            elif resultado == 2:
+                crearErrorPopUp("Error, no existe un producto\ncon ese id")
+            elif resultado == 3:  
                 tablaProductos.delete(*tablaProductos.get_children())
                 llenar_tabla()
-                print("Se modifico al producto correctamente")
-            else:
-                popup_error()        
+                crearErrorPopUp("Producto modificado correctamente", color="#4CAF50")       
 
     def eliminarProducto():
         db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
@@ -500,17 +512,6 @@ def ventanaGestionDeProductos(ventanaAnterior):
 
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaProductos.grid(row=5, column=2, rowspan=7, sticky="nsew")
-
-        def popup_error():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("500x150")
-            mensaje = tk.Label(popup_error, text="1 - Error, no existe un producto con ese id!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
        
         def llenar_tabla():
             lista_productos = producto_db.verProductos()
@@ -525,9 +526,9 @@ def ventanaGestionDeProductos(ventanaAnterior):
             if producto_db.eliminarProductoPorId((id_AEliminar,)):
                 tablaProductos.delete(*tablaProductos.get_children())
                 llenar_tabla()
-                print("Se elimino al producto correctamente")
+                crearErrorPopUp("Producto eliminado correctamente", color="#4CAF50")
             else:
-                popup_error()  
+                crearErrorPopUp("Error, no existe un producto\ncon ese id") 
 
     def consultasAvanzadas():
         pass
@@ -561,7 +562,7 @@ def ventanaGestionDeClientes(ventanaAnterior):
     botonVerClientes = tk.Button(ventanaGestionDeClientes, text="Ver clientes", bg="#9494b8", font=("Arial", 14), command=lambda: verClientes())
     botonRegistraClientes = tk.Button(ventanaGestionDeClientes, text="Registrar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: registraClientes())
     botonActualizarCliente = tk.Button(ventanaGestionDeClientes, text="Actualizar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: modificarCliente())
-    botonEliminarCliente = tk.Button(ventanaGestionDeClientes, text="Eliminar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+    botonEliminarCliente = tk.Button(ventanaGestionDeClientes, text="Eliminar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: eliminarCliente())
     botonConsultasAvanzadas = tk.Button(ventanaGestionDeClientes, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
 
     botonVolver = tk.Button(ventanaGestionDeClientes, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
@@ -764,28 +765,6 @@ def ventanaGestionDeClientes(ventanaAnterior):
 
         llenar_tabla() # Empezamos llenando la tabla con todos los valores
 
-        def popup_error_mail():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("300x150")
-            mensaje = tk.Label(popup_error, text="Error, mail no valido!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
-        
-        def popup_error():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("300x150")
-            mensaje = tk.Label(popup_error, text="Error, ya existe un cliente\ncon ese DNI!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
-
         def agregar():
             db.conectar()
             email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'  # Este es el patron que deberia seguir el mail ingresado
@@ -793,14 +772,19 @@ def ventanaGestionDeClientes(ventanaAnterior):
             nombre_ingresado = textareaNombre.get("1.0", "end").strip()
             appellido_ingresado = textareaApellido.get("1.0", "end").strip()
             mail_ingresado = textareaMail.get("1.0", "end").strip()
-            if not re.match(email_regex, mail_ingresado): # Si el patron del mail ingresado no coincide con el estandar entonces el mail no es valido y le mostramos un error al usuario
-                popup_error_mail()
-            elif cliente_db.agregarCliente(dni_ingresado, nombre_ingresado, appellido_ingresado, mail_ingresado):
-                tablaClientes.delete(*tablaClientes.get_children())
-                llenar_tabla()
-                print("Se agrego un cliente correctamente")
+            if dni_ingresado == '' or nombre_ingresado == '' or appellido_ingresado == '' or mail_ingresado == '': # Si algun parametro no se ingresa entonces vamos a evitar ejecutar el codigo para agregar un cliente asi evitamos errores innecesarios
+                crearErrorPopUp("Atencion, falta ingresar\nalgun parametro", color="#FFC107")
             else:
-                popup_error()
+                if len(dni_ingresado) != 8:
+                    crearErrorPopUp("Error, dni no valido!")
+                elif not re.match(email_regex, mail_ingresado): # Si el patron del mail ingresado no coincide con el estandar entonces el mail no es valido y le mostramos un error al usuario
+                    crearErrorPopUp("Error, mail no valido!")
+                elif cliente_db.agregarCliente(dni_ingresado, nombre_ingresado, appellido_ingresado, mail_ingresado):
+                    tablaClientes.delete(*tablaClientes.get_children())
+                    llenar_tabla()
+                    crearErrorPopUp("Cliente agregado correctamente", color="#4CAF50")
+                else:
+                    crearErrorPopUp("Error, ya existe un cliente\ncon ese DNI!")
 
         #FALTA AGREGAR popup_error, llenar_tabla y agregar
         def on_close():
@@ -884,28 +868,6 @@ def ventanaGestionDeClientes(ventanaAnterior):
 
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaClientes.grid(row=8, column=2, sticky="nsew")
-
-        def popup_error_mail():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("300x150")
-            mensaje = tk.Label(popup_error, text="Error, mail nuevo no valido!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
-
-        def popup_error():
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("450x100")
-            mensaje = tk.Label(popup_error, text="1 - Error, no existe un cliente con ese DNI!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
        
         def llenar_tabla():
             lista_clientes = cliente_db.verClientes()
@@ -921,21 +883,118 @@ def ventanaGestionDeClientes(ventanaAnterior):
             nombre_nuevo = textareaNombre.get("1.0", "end").strip()
             apellido_nuevo = textAreaApellido.get("1.0", "end").strip()
             mail_nuevo = textAreaMail.get("1.0", "end").strip()
-            if mail_nuevo == '': # Si el cliente no ingresa nada en la casilla de mail entonces podemos saltear el chequeo de patron. Y no nos tenemos que preocupar con que el mail quede vaicio porque el procedimiento sql esta diseniado para que no se cambien los atributos si ningun valor es ingresado
-                pass
+            if dni_aModificar == '': # Si el dni esta vacio entonces vamos a ignorar esta parte del codigo ya que seria innecesario ejecutuarla si el cliente nisiquiere ingreso un dni. Asi evitamos que haya un error de sql por faltar valor en el procedimiento o por tener valores incorrectos en el dni
+                 crearErrorPopUp("Atencion, no ingresaste\nun DNI", color="#FFC107")
             else:
-                if not re.match(email_regex, mail_nuevo): # Si el patron del mail ingresado no coincide con el estandar entonces el mail no es valido y le mostramos un error al usuario
-                    popup_error_mail()
-                    mail_nuevo = '' # Hacemos que el mail quede vacio porque existe la posibilidad que el usuario ingrese un mail invalido y si eso sucede el codigo siguiente seria ejecutado y el mail seria cambiado a un mail invalido. Si hacemos que el mail input quede vacio entonces no se van a efectuar cambios gracias a la manera en la que esta diseniado el procedimiento sql que se activa cuando ejecutamos este codigo
-            if cliente_db.modificarClientePorDni(dni_aModificar, nombre_nuevo, apellido_nuevo, mail_nuevo):
+                if mail_nuevo == '': # Si el cliente no ingresa nada en la casilla de mail entonces podemos saltear el chequeo de patron. Y no nos tenemos que preocupar con que el mail quede vaicio porque el procedimiento sql esta diseniado para que no se cambien los atributos si ningun valor es ingresado
+                    if cliente_db.modificarClientePorDni(dni_aModificar, nombre_nuevo, apellido_nuevo, mail_nuevo):
+                        tablaClientes.delete(*tablaClientes.get_children())
+                        llenar_tabla()
+                        crearErrorPopUp("Cliente modificado correctamente!", color="#4CAF50")
+                    else:
+                        crearErrorPopUp("Error, no existe un cliente\ncon ese DNI") 
+                else:
+                    if not re.match(email_regex, mail_nuevo): # Si el patron del mail ingresado no coincide con el estandar entonces el mail no es valido y le mostramos un error al usuario
+                        crearErrorPopUp("Error, mail no valido!")
+                        mail_nuevo = '' # Hacemos que el mail quede vacio porque existe la posibilidad que el usuario ingrese un mail invalido y si eso sucede el codigo siguiente seria ejecutado y el mail seria cambiado a un mail invalido. Si hacemos que el mail input quede vacio entonces no se van a efectuar cambios gracias a la manera en la que esta diseniado el procedimiento sql que se activa cuando ejecutamos este codigo    
+                    elif cliente_db.modificarClientePorDni(dni_aModificar, nombre_nuevo, apellido_nuevo, mail_nuevo):
+                        tablaClientes.delete(*tablaClientes.get_children())
+                        llenar_tabla()
+                        crearErrorPopUp("Cliente modificado correctamente!", color="#4CAF50")
+                    else:
+                        crearErrorPopUp("Error, no existe un cliente\ncon ese DNI") 
+                
+
+    def eliminarCliente():
+        db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+        nonlocal ventana_gestionClientes_abierta
+
+        if ventana_gestionClientes_abierta:
+            return 
+        
+        ventanaGestionDeClientes.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionClientes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaEliminarCliente = tk.Toplevel()
+        ventanaEliminarCliente.config(bg="#d1d1e0")
+        ventanaEliminarCliente.title("Gestion de clientes")
+        ventanaEliminarCliente.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaEliminarCliente)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaEliminarCliente, text="Eliminar clientes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaEliminarCliente, text="Ingresa el DNI del cliente que queres eliminar", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaEliminarCliente, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+        # Declarar label de atributos para Eliminar
+        labelDniClienteAEliminar = tk.Label(ventanaEliminarCliente, text="DNI del cliente a eliminar: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        
+        # Declarar input textarea + boton buscar
+        textareaDni = Text(ventanaEliminarCliente, height=max, width=25)
+        botonEliminar = tk.Button(ventanaEliminarCliente, text="Eliminar", command=lambda: Eliminar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para Eliminar el cliente con los parametros que haya ingresado
+
+        # Declarar tabla
+        # Declarar tabla
+        tablaClientes = ttk.Treeview(ventanaEliminarCliente, columns= ("dni_cliente", "nombre", "apellido", "mail"), show="headings", height=15)
+        tablaClientes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaClientes.heading("nombre", text="Nombre", anchor="center")
+        tablaClientes.heading("apellido", text="Apellido", anchor="center")
+        tablaClientes.heading("mail", text="Mail", anchor="center")
+        tablaClientes.column("dni_cliente", width=80, anchor="center")
+        tablaClientes.column("nombre", width=130, anchor="center")
+        tablaClientes.column("apellido", width=100, anchor="center")
+        tablaClientes.column("mail", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+
+        # Posicionar label de atributos para Eliminar
+        labelDniClienteAEliminar.grid(row=3, column=1, sticky="e")
+
+        # Posicionar input textarea + dropdownCategoria + boton eliminar
+        textareaDni.grid(row=3, column=2, sticky="we")
+        botonEliminar.grid(row=3, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaClientes.grid(row=5, column=2, rowspan=7, sticky="nsew")
+
+        def popup_error():
+            popup_error = tk.Toplevel()
+            popup_error.title("Error!")
+            popup_error.geometry("500x150")
+            mensaje = tk.Label(popup_error, text="1 - Error, no existe un cliente con ese DNI!", font=("Arial", 14))
+            mensaje.config(fg="#D8000C")
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+       
+        def llenar_tabla():
+            lista_clientes = cliente_db.verClientes()
+            for cliente in lista_clientes:
+                tablaClientes.insert("", "end", values=cliente)
+        
+        llenar_tabla()
+
+        def Eliminar():
+            db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+            dni_AEliminar = textareaDni.get("1.0", "end").strip()
+            if cliente_db.eliminarClientePorDni((dni_AEliminar,)):
                 tablaClientes.delete(*tablaClientes.get_children())
                 llenar_tabla()
-                print("Se modifico el cliente correctamente")
+                print("Se elimino al cliente correctamente")
             else:
-                popup_error()  
-    
-    def eliminarCliente():
-        pass   
+                popup_error()     
 
 def ventanaGestionDeOrdenes(ventanaAnterior):
 
@@ -961,9 +1020,9 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
     crearGridVentana(ventanaGestionDeOrdenes) 
 
     # Declarar header
-    headerPrincipal = tk.Label(ventanaGestionDeOrdenes, text="Gestion de productos", font=("Arial", 20, "bold"), bg="#d1d1e0")
+    headerPrincipal = tk.Label(ventanaGestionDeOrdenes, text="Gestion de ordenes", font=("Arial", 20, "bold"), bg="#d1d1e0")
 
-    # Declarar botones ESTOS SON LOS BOTONES QUE APARECEN EL MENU DE GESTION DE PRODUCTOS 
+    # Declarar botones ESTOS SON LOS BOTONES QUE APARECEN EL MENU DE GESTION DE ORDENES 
     verOrdenes = tk.Button(ventanaGestionDeOrdenes, text="Ver ordenes", bg="#9494b8", font=("Arial", 14), command=lambda: verOrdenes())
     agregarOrden = tk.Button(ventanaGestionDeOrdenes, text="Agregar orden", bg="#9494b8", font=("Arial", 14), command=lambda: agregarOrden())
     modificarOrden = tk.Button(ventanaGestionDeOrdenes, text="Modificar orden", bg="#9494b8", font=("Arial", 14), command=lambda: modificarOrden())
@@ -1100,7 +1159,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         
         ventanaGestionDeOrdenes.withdraw()
 
-        # Declarar ventana de gestion de productos
+        # Declarar ventana de gestion de ordenes
         ventana_gestionOrdenes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
         ventanaAgregarOrden = tk.Toplevel()
         ventanaAgregarOrden.config(bg="#d1d1e0")
@@ -1172,18 +1231,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
             popup_error.title("Exito!")
             popup_error.geometry("300x150")
             mensaje = tk.Label(popup_error, text="Se agrego la orden correctamente!", font=("Arial", 14))
-            mensaje.pack(pady=20)
-    
-            # Crear botón para cerrar el popup
-            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
-            boton_cerrar.pack()
-
-        def popup_error(): # hacer una lista de posibles errores en esta seccion del codigo
-            popup_error = tk.Toplevel()
-            popup_error.title("Error!")
-            popup_error.geometry("300x150")
-            mensaje = tk.Label(popup_error, text="Error, ya existe un orden\ncon ese id!", font=("Arial", 14))
-            mensaje.config(fg="#D8000C")
+            mensaje.config(fg="#4CAF50")
             mensaje.pack(pady=20)
     
             # Crear botón para cerrar el popup
@@ -1197,19 +1245,30 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
 
         llenar_tabla()
 
-        # ESTO ESTA COPIADO DE AGREGARPRODUCTO, FALTA CAMBIARLE COSAS. ESTA 0 AVANZADO, PERO EL FORMATO SE QUEDA IGUAL ASI QUE LO DEJO ASI
         def agregar():
             db.conectar()
             dni_cliente_ingresado = textAreaDniCliente.get("1.0", "end").strip()
             id_producto_ingresado = textareaIdProducto.get("1.0", "end").strip()
             cantidad_ingresada = textareaCantidad.get("1.0", "end").strip()
             fecha_ingresada = calendarioFecha.get_date()
-            if orden_db.agregarOrden(dni_cliente_ingresado, id_producto_ingresado, cantidad_ingresada, fecha_ingresada):
-                tablaOrdenes.delete(*tablaOrdenes.get_children())
-                llenar_tabla()
-                print("Se agrego una orden correctamente")
+            if dni_cliente_ingresado == '' or id_producto_ingresado == '' or cantidad_ingresada == '' or fecha_ingresada == '':
+                crearErrorPopUp("Atencion, falta ingresar algun\nparametro!", color="#FFC107") # Si alguno de los valores no es ingresado entonces no vale la pena ejecutar el codigo, asi evitamos generar errores innecesarios
+            elif not isinstance(cantidad_ingresada, int):
+                crearErrorPopUp("Error, la cantidad ingresada tiene\nque ser un numero")
             else:
-                popup_error()
+                resultado = orden_db.agregarOrden(dni_cliente_ingresado, id_producto_ingresado, cantidad_ingresada, fecha_ingresada)
+                if resultado == 5: # Exito
+                    tablaOrdenes.delete(*tablaOrdenes.get_children())
+                    llenar_tabla()
+                    popup_exito()
+                elif resultado == 1: 
+                    crearErrorPopUp("Error, la cantidad del pedido\nno puede ser menor a 0") # La cantidad del pedido no puede ser menor a 0
+                elif resultado == 2:
+                    crearErrorPopUp("Error, el producto elegido no\ntiene stock suficiente") # El producto elegido no tiene stock suficiente
+                elif resultado == 3:
+                    crearErrorPopUp("Error, no existe un producto\ncon ese id") # No existe un producto con ese id
+                elif resultado == 4:
+                    crearErrorPopUp("Error, no existe un cliente\ncon ese DNI") # No existe un cliente con ese dni
 
         def on_close():
             nonlocal ventana_gestionOrdenes_abierta

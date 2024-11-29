@@ -10,13 +10,13 @@ class Cliente:
     
     def verClientePorAtributo(self, dni = None, nombre = None, apellido = None): # Dependiendo de que atributo sea ingresado se va a elegir un query y un valor correspondientes
         if dni is not None:
-            query = "CALL ObtenerClientePorDNI(%s, @resultado)"
+            query = "CALL ObtenerClientePorDNI(%s)"
             valor = dni
         if nombre is not None:
-            query = "CALL ObtenerClientePorNombre(%s, @resultado)"
+            query = "CALL ObtenerClientePorNombre(%s)"
             valor = nombre
         if apellido is not None:
-            query = "CALL ObtenerClientePorApellido(%s, @resultado)"
+            query = "CALL ObtenerClientePorApellido(%s)"
             valor = apellido
         return self.db.obtener_datos(query, valor)
     
