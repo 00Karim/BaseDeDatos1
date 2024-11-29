@@ -3,6 +3,8 @@ from tkinter import ttk, OptionMenu, StringVar, Text
 from conexion import BaseDeDatos
 from producto import Producto
 from orden import Orden
+from cliente import Cliente
+import re # Importamos re para chequear si un mail es valido en la funcion agregar() dentro de la ventana registraClientes en gestion de clientes
 
 # Creamos la conexion a la base de datos
 db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
@@ -11,6 +13,7 @@ db.conectar()
 # Creamos instancias de las clases producto, orden y cliente para poder ejecutar las operaciones necesarias
 producto_db = Producto(db)
 orden_db = Orden(db)
+cliente_db = Cliente(db)
 
 # Con estas variables controlamos si una ventana esta abierta
 ventana_productos_abierta = False
@@ -422,7 +425,9 @@ def ventanaGestionDeProductos(ventanaAnterior):
             nombre_nuevo = textareaNombre.get("1.0", "end").strip()
             cantidad_nueva = textAreaCantidadDisponible.get("1.0", "end").strip()
             categoria_nueva = eleccion.get()
-            if producto_db.modificarProductoPorId(id_AModificar, nombre_nuevo, cantidad_nueva, categoria_nueva):
+            if cantidad_nueva == "":
+                cantidad_nueva = None # Tenemos que convertir cantidad nueva a none si el usuario no ingreso nada para que se traduzca a Null en sql y asi directamente no actualizamos la cantidad y la dejamos como esta
+            if producto_db.modificarProductoPorId(id_AModificar, nombre_nuevo, cantidad_nueva, categoria_nueva): # DATO: decidimos que las ventas totales no se pueden actualizar aca ya que se actualizan solas cuando se efectua una orden nueva
                 tablaProductos.delete(*tablaProductos.get_children())
                 llenar_tabla()
                 print("Se modifico al producto correctamente")
@@ -524,6 +529,8 @@ def ventanaGestionDeProductos(ventanaAnterior):
         pass
 
 def ventanaGestionDeClientes(ventanaAnterior):
+    ventana_gestionClientes_abierta = False
+    
     global ventana_clientes_abierta
 
     # Si la variable es True entonces significa que la ventana ya fue abierta entonces no queremos abrirla nuevamente por lo que vamos a hacer un return
@@ -538,19 +545,393 @@ def ventanaGestionDeClientes(ventanaAnterior):
     ventanaGestionDeClientes = tk.Toplevel()
     ventanaGestionDeClientes.config(bg="#d1d1e0")
     ventanaGestionDeClientes.title("Gestion de clientes")
-    ventanaGestionDeClientes.geometry("450x500")
+    ventanaGestionDeClientes.state("zoomed")
 
     # Declarar grid de la ventana 
     crearGridVentana(ventanaGestionDeClientes) 
+    
+    # Declarar header
+    headerPrincipal = tk.Label(ventanaGestionDeClientes, text="Gestion de clientes", font=("Arial", 20, "bold"), bg="#d1d1e0")
 
-    # Con el codigo a continuacion cambiamos la variable de ventana abierta a Falso asi podemos abrirlo nuevamente despues de cerrarlo
+    # Declarar botones
+    botonVerClientes = tk.Button(ventanaGestionDeClientes, text="Ver clientes", bg="#9494b8", font=("Arial", 14), command=lambda: verClientes())
+    botonRegistraClientes = tk.Button(ventanaGestionDeClientes, text="Registrar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: registraClientes())
+    botonActualizarCliente = tk.Button(ventanaGestionDeClientes, text="Actualizar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: modificarCliente())
+    botonEliminarCliente = tk.Button(ventanaGestionDeClientes, text="Eliminar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+    botonConsultasAvanzadas = tk.Button(ventanaGestionDeClientes, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+
+    botonVolver = tk.Button(ventanaGestionDeClientes, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+    # Posicionar header
+    headerPrincipal.grid(row=1, column=2, sticky="nsew")
+
+    # Posicionar botones
+    botonVerClientes.grid(row=3, column=2, sticky="nsew")
+    botonRegistraClientes.grid(row=5, column=2, sticky="nsew")
+    botonActualizarCliente.grid(row=7, column=2, sticky="nsew")
+    botonEliminarCliente.grid(row=9, column=2, sticky="nswe")
+    botonConsultasAvanzadas.grid(row=11, column=2, sticky="nswe")    
+    
+    botonVolver.grid(row= 11, column=3, sticky="e") 
+
+        # Con el codigo a continuacion cambiamos la variable de ventana abierta a Falso asi podemos abrirlo nuevamente despues de cerrarlo
     def on_close():
         global ventana_clientes_abierta
         ventana_clientes_abierta = False
         ventanaGestionDeClientes.destroy()
+        ventanaAnterior.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
         ventanaAnterior.deiconify()
 
-    ventanaGestionDeClientes.protocol("WM_DELETE_WINDOW", on_close)
+    ventanaGestionDeClientes.protocol("WM_DELETE_WINDOW", on_close) 
+    
+    def verClientes():
+        nonlocal ventana_gestionClientes_abierta
+
+        if ventana_gestionClientes_abierta:
+            return 
+        
+        ventanaGestionDeClientes.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionClientes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaVerClientes = tk.Toplevel()
+        ventanaVerClientes.config(bg="#d1d1e0")
+        ventanaVerClientes.title("Gestion de clientes")
+        ventanaVerClientes.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaVerClientes)
+
+        # Declarar header
+        headerPrincipal = tk.Label(ventanaVerClientes, text="Ver clientes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaVerClientes, text="Elige un atributo por el cual filtrar la busqueda de clientes", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaVerClientes, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+        # Declarar dropdown
+        eleccion = StringVar() # Declaramos la variable como string var para poder acceder a ella para definir los metodos usados para mostrar la tabla
+        eleccion.set("Nombre")
+        dropdown = OptionMenu(ventanaVerClientes, eleccion, "Nombre", "Apellido", "DNI")
+
+        # Declarar input textarea + boton buscar
+        dropdownTextarea = Text(ventanaVerClientes, height=max, width=25)
+        botonBuscar = tk.Button(ventanaVerClientes, text="Buscar", command= lambda: buscar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para buscar el cliente por el atributo que haya elegido
+
+        # Declarar tabla
+        tablaClientes = ttk.Treeview(ventanaVerClientes, columns= ("dni_cliente", "nombre", "apellido", "mail"), show="headings")
+        tablaClientes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaClientes.heading("nombre", text="Nombre", anchor="center")
+        tablaClientes.heading("apellido", text="Apellido", anchor="center")
+        tablaClientes.heading("mail", text="Mail", anchor="center")
+        tablaClientes.column("dni_cliente", width=80, anchor="center")
+        tablaClientes.column("nombre", width=130, anchor="center")
+        tablaClientes.column("apellido", width=100, anchor="center")
+        tablaClientes.column("mail", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+
+        # Posicionar dropdown
+        dropdown.grid(row=3, column=1, sticky="ew")
+
+        # Posicionar input textarea + boton buscar
+        dropdownTextarea.grid(row=3, column=2, sticky="we")
+        botonBuscar.grid(row=3, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaClientes.grid(row=4, column=2, rowspan=7, sticky="nsew")
+
+        #ACA FALTA AGREGAR LA FUNCION DE LLENAR TABLA Y BUSCAR CLIENTES
+        def llenar_tabla():
+            lista_clientes = cliente_db.verClientes()
+            for producto in lista_clientes:
+                tablaClientes.insert("", "end", values=producto)
+
+        llenar_tabla() # Empezamos llenando la tabla con todos los valores
+
+        # Una vez que el usuario eliga un atributo para filtrar la busqueda y toque aceptar, dependiendo de que atributo eligio y el valor que ingreso, vamos a hacer una busqueda y luego a insertar los valores devueltos en la tabla
+        def buscar():
+            db.conectar() # Nuevamente, por alguna razon se desconecta la bdd despues de ejecutar el codigo, por lo que vamos a conectarnos nuevamente cuando se llame a esta funcion
+            tablaClientes.delete(*tablaClientes.get_children())
+            if eleccion.get() == 'DNI':
+                dni_elegido = dropdownTextarea.get("1.0", "end").strip()
+                clientes_seleccionados = cliente_db.verClientePorAtributo(dni=(dni_elegido,))
+            elif eleccion.get() == 'Nombre':
+                nombre_elegido = dropdownTextarea.get("1.0", "end").strip()
+                clientes_seleccionados = cliente_db.verClientePorAtributo(nombre=(nombre_elegido,))
+            else:
+                apellido_elegido = dropdownTextarea.get("1.0", "end").strip()
+                clientes_seleccionados = cliente_db.verClientePorAtributo(apellido=(apellido_elegido,))
+
+            for cliente in clientes_seleccionados:
+                    tablaClientes.insert("", "end", values=cliente)
+        
+        def on_close():
+            nonlocal ventana_gestionClientes_abierta
+            ventana_gestionClientes_abierta = False
+            ventanaVerClientes.destroy()
+            ventanaGestionDeClientes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeClientes.deiconify()
+
+        ventanaVerClientes.protocol("WM_DELETE_WINDOW", on_close)
+    
+    def registraClientes():
+        global crearGridVentana
+        nonlocal ventana_gestionClientes_abierta
+
+        if ventana_gestionClientes_abierta:
+            return 
+        
+        ventanaGestionDeClientes.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionClientes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaRegistrarCliente = tk.Toplevel()
+        ventanaRegistrarCliente.config(bg="#d1d1e0")
+        ventanaRegistrarCliente.title("Gestion de clientes")
+        ventanaRegistrarCliente.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaRegistrarCliente)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaRegistrarCliente, text="Registrar clientes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaRegistrarCliente, text="Ingresa los datos del cliente", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaRegistrarCliente, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+        # Declarar label de atributos para agregar
+        labelNombre = tk.Label(ventanaRegistrarCliente, text="Nombre: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelApellido = tk.Label(ventanaRegistrarCliente, text="Apellido: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelDNI = tk.Label(ventanaRegistrarCliente, text="DNI: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelMail = tk.Label(ventanaRegistrarCliente, text="Mail: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        
+        # Declarar input textarea + boton buscar
+        textareaNombre = Text(ventanaRegistrarCliente, height=max, width=25)
+        textareaApellido = Text(ventanaRegistrarCliente, height=max, width=25)
+        textareaDNI = Text(ventanaRegistrarCliente, height=max, width=25)
+        textareaMail = Text(ventanaRegistrarCliente, height=max, width=25)
+        botonRegistrar = tk.Button(ventanaRegistrarCliente, text="Registrar", command=lambda: agregar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
+
+        # Declarar tabla
+        tablaClientes = ttk.Treeview(ventanaRegistrarCliente, columns= ("dni_cliente", "nombre", "apellido", "mail"), show="headings", height=15)
+        tablaClientes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaClientes.heading("nombre", text="Nombre", anchor="center")
+        tablaClientes.heading("apellido", text="Apellido", anchor="center")
+        tablaClientes.heading("mail", text="Mail", anchor="center")
+        tablaClientes.column("dni_cliente", width=80, anchor="center")
+        tablaClientes.column("nombre", width=130, anchor="center")
+        tablaClientes.column("apellido", width=100, anchor="center")
+        tablaClientes.column("mail", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+
+        # Posicionar label de atributos para agregar
+        labelDNI.grid(row=4, column=1, sticky="e")
+        labelNombre.grid(row=5, column=1, sticky="e")
+        labelApellido.grid(row=6, column=1, sticky="e")
+        labelMail.grid(row=7, column=1, sticky="e")
+
+        # Posicionar input textarea + dropdownCategoria + boton agregar
+        textareaDNI.grid(row=4, column=2, sticky="we")
+        textareaNombre.grid(row=5, column=2, sticky="we")
+        textareaApellido.grid(row=6, column=2, sticky="we")
+        textareaMail.grid(row=7, column=2, sticky="we")
+        botonRegistrar.grid(row=7, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaClientes.grid(row=8, column=2, sticky="nsew")
+
+        def llenar_tabla():
+            lista_clientes = cliente_db.verClientes()
+            for producto in lista_clientes:
+                tablaClientes.insert("", "end", values=producto)
+
+        llenar_tabla() # Empezamos llenando la tabla con todos los valores
+
+        def popup_error_mail():
+            popup_error = tk.Toplevel()
+            popup_error.title("Error!")
+            popup_error.geometry("300x150")
+            mensaje = tk.Label(popup_error, text="Error, mail no valido!", font=("Arial", 14))
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+        
+        def popup_error():
+            popup_error = tk.Toplevel()
+            popup_error.title("Error!")
+            popup_error.geometry("300x150")
+            mensaje = tk.Label(popup_error, text="Error, ya existe un cliente\ncon ese DNI!", font=("Arial", 14))
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+
+        def agregar():
+            db.conectar()
+            email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'  # Este es el patron que deberia seguir el mail ingresado
+            dni_ingresado = textareaDNI.get("1.0", "end").strip()
+            nombre_ingresado = textareaNombre.get("1.0", "end").strip()
+            appellido_ingresado = textareaApellido.get("1.0", "end").strip()
+            mail_ingresado = textareaMail.get("1.0", "end").strip()
+            if not re.match(email_regex, mail_ingresado): # Si el patron del mail ingresado no coincide con el estandar entonces el mail no es valido y le mostramos un error al usuario
+                popup_error_mail()
+            elif cliente_db.agregarCliente(dni_ingresado, nombre_ingresado, appellido_ingresado, mail_ingresado):
+                tablaClientes.delete(*tablaClientes.get_children())
+                llenar_tabla()
+                print("Se agrego un cliente correctamente")
+            else:
+                popup_error()
+
+        #FALTA AGREGAR popup_error, llenar_tabla y agregar
+        def on_close():
+            nonlocal ventana_gestionClientes_abierta
+            ventana_gestionClientes_abierta = False
+            ventanaRegistrarCliente.destroy()
+            ventanaGestionDeClientes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeClientes.deiconify()
+            
+        ventanaRegistrarCliente.protocol("WM_DELETE_WINDOW", on_close)
+
+    def modificarCliente():
+        db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+        nonlocal ventana_gestionClientes_abierta
+
+        if ventana_gestionClientes_abierta:
+            return 
+        
+        ventanaGestionDeClientes.withdraw()
+
+        # Declarar ventana de gestion de Clientes
+        ventana_gestionClientes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaModificarCliente = tk.Toplevel()
+        ventanaModificarCliente.config(bg="#d1d1e0")
+        ventanaModificarCliente.title("Gestion de clientes")
+        ventanaModificarCliente.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaModificarCliente)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaModificarCliente, text="Modificar clientes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaModificarCliente, text="Ingresa los valores para cambiarle al cliente", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaModificarCliente, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+        # Declarar label de atributos para Modificar
+        labeDniClienteAModificar = tk.Label(ventanaModificarCliente, text="DNI del cliente a modificar: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelNombre = tk.Label(ventanaModificarCliente, text="Nombre nuevo: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelApellido = tk.Label(ventanaModificarCliente, text="Apellido nuevo: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelMail = tk.Label(ventanaModificarCliente, text="Mail nuevo: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        
+        # Declarar input textarea + boton buscar
+        textareaDniClienteAModificar = Text(ventanaModificarCliente, height=max, width=25)
+        textareaNombre = Text(ventanaModificarCliente, height=max, width=25)
+        textAreaApellido = Text(ventanaModificarCliente, height=max, width=25)
+        textAreaMail = Text(ventanaModificarCliente, height=max, width=25)
+        botonModificar = tk.Button(ventanaModificarCliente, text="Modificar", command=lambda: Modificar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para Modificar el cliente con los parametros que haya ingresado
+
+        # Declarar tabla
+        tablaClientes = ttk.Treeview(ventanaModificarCliente, columns= ("dni_cliente", "nombre", "apellido", "mail"), show="headings", height=15)
+        tablaClientes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaClientes.heading("nombre", text="Nombre", anchor="center")
+        tablaClientes.heading("apellido", text="Apellido", anchor="center")
+        tablaClientes.heading("mail", text="Mail", anchor="center")
+        tablaClientes.column("dni_cliente", width=80, anchor="center")
+        tablaClientes.column("nombre", width=130, anchor="center")
+        tablaClientes.column("apellido", width=100, anchor="center")
+        tablaClientes.column("mail", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+
+        # Posicionar label de atributos para Modificar
+        labeDniClienteAModificar.grid(row=3, column=1, sticky="e")
+        labelNombre.grid(row=4, column=1, sticky="e")
+        labelApellido.grid(row=5, column=1, sticky="e")
+        labelMail.grid(row=6, column=1, sticky="e")
+
+        # Posicionar input textarea + dropdownCategoria + boton Modificar
+        textareaDniClienteAModificar.grid(row=3, column=2, sticky="we")
+        textareaNombre.grid(row=4, column=2, sticky="we")
+        textAreaApellido.grid(row=5, column=2, sticky="we")
+        textAreaMail.grid(row=6, column=2, sticky="we")
+        botonModificar.grid(row=6, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaClientes.grid(row=8, column=2, sticky="nsew")
+
+        def popup_error_mail():
+            popup_error = tk.Toplevel()
+            popup_error.title("Error!")
+            popup_error.geometry("300x150")
+            mensaje = tk.Label(popup_error, text="Error, mail nuevo no valido!", font=("Arial", 14))
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+
+        def popup_error():
+            popup_error = tk.Toplevel()
+            popup_error.title("Error!")
+            popup_error.geometry("450x100")
+            mensaje = tk.Label(popup_error, text="1 - Error, no existe un cliente con ese DNI!", font=("Arial", 14))
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+       
+        def llenar_tabla():
+            lista_clientes = cliente_db.verClientes()
+            for cliente in lista_clientes:
+                tablaClientes.insert("", "end", values=cliente)
+        
+        llenar_tabla()
+        
+        def Modificar(): 
+            db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+            email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'  # Este es el patron que deberia seguir el mail ingresado
+            dni_aModificar = textareaDniClienteAModificar.get("1.0", "end").strip()
+            nombre_nuevo = textareaNombre.get("1.0", "end").strip()
+            apellido_nuevo = textAreaApellido.get("1.0", "end").strip()
+            mail_nuevo = textAreaMail.get("1.0", "end").strip()
+            if mail_nuevo == '': # Si el cliente no ingresa nada en la casilla de mail entonces podemos saltear el chequeo de patron. Y no nos tenemos que preocupar con que el mail quede vaicio porque el procedimiento sql esta diseniado para que no se cambien los atributos si ningun valor es ingresado
+                pass
+            else:
+                if not re.match(email_regex, mail_nuevo): # Si el patron del mail ingresado no coincide con el estandar entonces el mail no es valido y le mostramos un error al usuario
+                    popup_error_mail()
+                    mail_nuevo = '' # Hacemos que el mail quede vacio porque existe la posibilidad que el usuario ingrese un mail invalido y si eso sucede el codigo siguiente seria ejecutado y el mail seria cambiado a un mail invalido. Si hacemos que el mail input quede vacio entonces no se van a efectuar cambios gracias a la manera en la que esta diseniado el procedimiento sql que se activa cuando ejecutamos este codigo
+            if cliente_db.modificarClientePorDni(dni_aModificar, nombre_nuevo, apellido_nuevo, mail_nuevo):
+                tablaClientes.delete(*tablaClientes.get_children())
+                llenar_tabla()
+                print("Se modifico el cliente correctamente")
+            else:
+                popup_error()  
+    
+    def eliminarCliente():
+        pass   
 
 def ventanaGestionDeOrdenes(ventanaAnterior):
 
@@ -657,7 +1038,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
         subtitulo.grid(row=2, column=2, sticky="sew") 
-        print("LLEGUE HASTA ACA 1")
+    
         # Posicionar dropdown
         dropdown.grid(row=3, column=1, sticky="ew")
 
@@ -671,7 +1052,6 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         def llenar_tabla():
             lista_ordenes = orden_db.verOrdenes()
             for orden in lista_ordenes:
-                print(orden)
                 tablaOrdenes.insert("", "end", values=orden)
         
         llenar_tabla() # Empezamos llenando la tabla con todos los valores
@@ -705,8 +1085,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
             ventanaGestionDeOrdenes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
             ventanaGestionDeOrdenes.deiconify()
         
-        ventanaVerOrdenes.protocol("WM_DELETE_WINDOW", on_close)
-        
+        ventanaVerOrdenes.protocol("WM_DELETE_WINDOW", on_close)    
 
     def agregarOrden():
         db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo

@@ -64,30 +64,34 @@ El diseño en 3FN sería el siguiente
 # SQL de las tablas
 
 ```sql
-CREATE TABLE Clientes (
-    dni_cliente INT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE Clientes(
+	dni_cliente INT PRIMARY KEY,
     nombre VARCHAR(150),
-    apellido VARCHAR(150)
-    );
+    apellido VARCHAR(150),
+    mail VARCHAR(150),
+    CONSTRAINT chequear_largo_dni CHECK (LENGTH(dni_cliente) = 8)
+);
 
 CREATE TABLE Productos(
-    id_producto INT PRIMARY KEY AUTO_INCREMENT,
+	id_producto INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(150),
     cantidad_disponible INT,
     categoria VARCHAR(20),
     ventas_totales INT,
     CHECK(categoria IN ('Carnes', 'Nueces', 'Bebidas')) -- Vemos que otras categorias podriamos agregar
-    );
+);
 
 CREATE TABLE OrdenesDeCompra(
-    id_orden INT PRIMARY KEY AUTO_INCREMENT,
-    dni_cliente INT,
-    id_producto INT,
+	id_orden INT PRIMARY KEY AUTO_INCREMENT,
+    dni_cliente INT DEFAULT NULL,
+    id_producto INT DEFAULT NULL,
     cantidad INT,
     fecha DATE,
-    FOREIGN KEY (dni_cliente) REFERENCES Clientes(dni_cliente) ON UPDATE CASCADE ON DELETE SET NULL,
-    FOREIGN KEY (id_producto) REFERENCES Productos(id_producto) ON UPDATE CASCADE ON DELETE SET NULL
-    )
+    FOREIGN KEY (dni_cliente) REFERENCES Clientes(dni_cliente)
+    ON UPDATE CASCADE ON DELETE SET NULL, -- De esta manera, cuando se elimine un cliente (lo cual no seria posible sin poner DEFAULT NULL despues de declara el atributo) el atibuto va a pasar a ser Null y asi no hay inconsistencias en la tabla: Si un cliente no existe, entonces no pudo haber hecho un pedido
+    FOREIGN KEY (id_producto) REFERENCES Productos(id_producto)
+    ON UPDATE CASCADE ON DELETE SET NULL -- Lo mismo con el producto: Si un producto no existe, entonces no pudo haber sido encargado
+)
 ```
 
 # SQL GET GENERAL DE TABLA
@@ -153,17 +157,23 @@ DELIMITER ;
 ```sql
 ```
 
-# SQL Get cliente por dni o por nombre
+# SQL Get cliente por dni, por nombre o por apellido
 ```sql
 DELIMITER //
-CREATE PROCEDURE ObtenerClientePorDNI
+CREATE PROCEDURE ObtenerClientePorDni
 (
-IN dni INT
+    IN dni VARCHAR(20),
+    OUT resultado BOOLEAN
 )
-    BEGIN
-        SELECT * FROM clientes
-        WHERE clientes.dni_cliente = dni;
-    END //
+BEGIN
+    IF dni = '' THEN
+        SELECT * FROM clientes;
+        SET resultado = FALSE;
+    ELSE
+        SELECT * FROM productos WHERE id_producto = CAST(producto_id AS UNSIGNED); # Con CAST podemos extraer el valor ingresado por el cliente y convertirlo a un int de manera que evita muchos errores. Por ejemplo, si el usuario ingresa texto en vez de un numero, el cast va a convertir este input a un 0.
+		SET resultado = FALSE;
+    END IF;
+END//
 DELIMITER ; 
 ```
 # -------------------------------------------------------------------------
@@ -171,11 +181,36 @@ DELIMITER ;
 DELIMITER //
 CREATE PROCEDURE ObtenerClientePorNombre
 (
-IN nombre_input VARCHAR(150)
+IN nombre_input VARCHAR(150),
+OUT resultado BOOLEAN
 )
     BEGIN
         SELECT * FROM clientes
-        WHERE clientes.nombre = nombre_input;
+        WHERE nombre LIKE CONCAT('%', nombre_input, '%');
+        IF ROW_COUNT() > 0 THEN
+            SET resultado = TRUE;
+        ELSE 
+            SET resultado = FALSE; # El cliente no existe 
+        END IF;
+    END //
+DELIMITER ;
+```
+# ------------------------------------------------------------------------
+```sql
+DELIMITER //
+CREATE PROCEDURE ObtenerClientePorApellido
+(
+IN apellido_input VARCHAR(150),
+OUT resultado BOOLEAN
+)
+    BEGIN
+        SELECT * FROM clientes
+        WHERE apellido LIKE CONCAT('%', apellido_input, '%');
+        IF ROW_COUNT() > 0 THEN
+            SET resultado = TRUE;
+        ELSE 
+            SET resultado = FALSE; # El cliente no existe 
+        END IF;
     END //
 DELIMITER ;
 ```
@@ -230,27 +265,39 @@ OUT resultado BOOL
 DELIMITER ; 
 ```
 
-# SQL Modificar cliente por dni o por nombre
+# SQL Modificar cliente por dni 
 ```sql
 DELIMITER //
-CREATE PROCEDURE ModificarClientePorDNI
-(
-IN dni INT,
-IN nombre_input VARCHAR(150),
-IN apellido_input VARCHAR(150),
-OUT resultado BOOLEAN
+CREATE PROCEDURE ModificarClientePorDNI(
+    IN dni INT,
+    IN nombre_input VARCHAR(150),
+    IN apellido_input VARCHAR(150),
+    IN mail_input VARCHAR(150),
+    OUT resultado BOOLEAN
 )
-    BEGIN
-        UPDATE clientes
-        SET nombre = nombre_input, apellido = apellido_input 
-        WHERE clientes.dni_cliente = dni;
-    
-        IF ROW_COUNT() > 0 THEN
-            SET resultado = TRUE;
-        ELSE 
-            SET resultado = FALSE; # El cliente no existe o hubo un error durante la ejecucion yqc
-        END IF;
-    END //
+BEGIN
+    UPDATE clientes
+    SET 
+        nombre = CASE 
+                    WHEN nombre_input != '' THEN nombre_input -- Si la columna no esta vacia entonces la reemplazamos
+                    ELSE nombre -- Si la columna esta vacia entonces vamos a dejarla con el valor con el que estaba
+                 END, -- De esta manera podemos modificar una variable por vez asi no es necesario ingresar todos los atributos si queremos modificar 1 solo
+        apellido = CASE 
+                    WHEN apellido_input != '' THEN apellido_input 
+                    ELSE apellido 
+                  END,
+        mail = CASE 
+                    WHEN mail_input != '' THEN mail_input 
+                    ELSE mail 
+               END
+    WHERE clientes.dni_cliente = dni;
+
+    IF (SELECT COUNT(*) FROM clientes WHERE dni_cliente = dni) > 0 THEN
+		SET resultado = TRUE; -- Hay un cliente con ese dni
+	ELSE
+		SET resultado = FALSE; -- No hay un cliente con ese dni
+	END IF;
+END //
 DELIMITER ; 
 ```
 
@@ -368,7 +415,7 @@ DELIMITER ;
 
 # SQL Modificar producto por id o por nombre
 ```sql
-DEILIMITER // 
+DELIMITER // 
 CREATE PROCEDURE ModificarProductoPorId(
 IN id INT,
 IN nombre_nuevo VARCHAR(150),
