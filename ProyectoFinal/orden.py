@@ -20,9 +20,9 @@ class Orden:
             valor = id_producto
         return self.db.obtener_datos(query, valor)
     
-    def agregarOrden(self, dni_cliente, id_producto, cantidad, fecha):
+    def agregarOrden(self, id_producto, dni_cliente, cantidad, fecha):
         query = "CALL AgregarOrden(%s, %s, %s, %s, @resultado)" # HACEMOS LOS CAMBIOS Y DESPUES OBTENEMOS EL OUTPUT PARA VER SI SALIO Todo BIEN.
-        valores = (dni_cliente, id_producto, cantidad, fecha) # internamente, el procedimiento sql usado aca, hace que el stock de un producto baje cuando se ejecuta el codigo
+        valores = (id_producto, dni_cliente, cantidad, fecha) # internamente, el procedimiento sql usado aca, hace que el stock de un producto baje cuando se ejecuta el codigo
         self.db.ejecutar(query, valores)
         
         queryResultado = "SELECT @resultado"

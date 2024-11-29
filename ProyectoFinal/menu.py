@@ -1,10 +1,14 @@
+
 import tkinter as tk
 from tkinter import ttk, OptionMenu, StringVar, Text
+from tkcalendar import *
 from conexion import BaseDeDatos
 from producto import Producto
 from orden import Orden
 from cliente import Cliente
 import re # Importamos re para chequear si un mail es valido en la funcion agregar() dentro de la ventana registraClientes en gestion de clientes
+
+# Create DateEntry widget with no custom style (uses the default flatly theme) 
 
 # Creamos la conexion a la base de datos
 db = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")
@@ -1123,7 +1127,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         textareaIdProducto = Text(ventanaAgregarOrden, height=max, width=25)
         textAreaDniCliente = Text(ventanaAgregarOrden, height=max, width=25)
         textareaCantidad = Text(ventanaAgregarOrden, height=max, width=25)
-        textAreaFecha = Text(ventanaAgregarOrden, height=max, width=25)
+        calendarioFecha = Calendar(ventanaAgregarOrden, setmode="day", date_pattern="d/m/yy")
         botonAgregar = tk.Button(ventanaAgregarOrden, text="Agregar", command=lambda: agregar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
 
         # Declarar tabla
@@ -1156,18 +1160,30 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         textareaIdProducto.grid(row=3, column=2, sticky="we")
         textAreaDniCliente.grid(row=4, column=2, sticky="we")
         textareaCantidad.grid(row=5, column=2, sticky="we")
-        textAreaFecha.grid(row=6, column=2, sticky="we")
+        calendarioFecha.grid(row=6, column=2, sticky="we")
         
         botonAgregar.grid(row=7, column=3, sticky="w")
 
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaOrdenes.grid(row=8, column=2, sticky="nsew")
 
+        def popup_exito():
+            popup_error = tk.Toplevel()
+            popup_error.title("Exito!")
+            popup_error.geometry("300x150")
+            mensaje = tk.Label(popup_error, text="Se agrego la orden correctamente!", font=("Arial", 14))
+            mensaje.pack(pady=20)
+    
+            # Crear botón para cerrar el popup
+            boton_cerrar = tk.Button(popup_error, text="Cerrar", command=popup_error.destroy)
+            boton_cerrar.pack()
+
         def popup_error(): # hacer una lista de posibles errores en esta seccion del codigo
             popup_error = tk.Toplevel()
             popup_error.title("Error!")
             popup_error.geometry("300x150")
             mensaje = tk.Label(popup_error, text="Error, ya existe un orden\ncon ese id!", font=("Arial", 14))
+            mensaje.config(fg="#D8000C")
             mensaje.pack(pady=20)
     
             # Crear botón para cerrar el popup
@@ -1184,10 +1200,11 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         # ESTO ESTA COPIADO DE AGREGARPRODUCTO, FALTA CAMBIARLE COSAS. ESTA 0 AVANZADO, PERO EL FORMATO SE QUEDA IGUAL ASI QUE LO DEJO ASI
         def agregar():
             db.conectar()
-            nombre_ingresado = textareaNombre.get("1.0", "end").strip()
-            cantidad_ingresada = int(textareaCantidadDisponible.get("1.0", "end").strip())
-            categoria_ingresada = eleccion.get()
-            if orden_db.agregarOrden(nombre_ingresado, cantidad_ingresada, categoria_ingresada):
+            dni_cliente_ingresado = textAreaDniCliente.get("1.0", "end").strip()
+            id_producto_ingresado = textareaIdProducto.get("1.0", "end").strip()
+            cantidad_ingresada = textareaCantidad.get("1.0", "end").strip()
+            fecha_ingresada = calendarioFecha.get_date()
+            if orden_db.agregarOrden(dni_cliente_ingresado, id_producto_ingresado, cantidad_ingresada, fecha_ingresada):
                 tablaOrdenes.delete(*tablaOrdenes.get_children())
                 llenar_tabla()
                 print("Se agrego una orden correctamente")
