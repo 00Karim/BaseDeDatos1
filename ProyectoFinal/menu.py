@@ -989,12 +989,15 @@ def ventanaGestionDeClientes(ventanaAnterior):
         def Eliminar():
             db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
             dni_AEliminar = textareaDni.get("1.0", "end").strip()
-            if cliente_db.eliminarClientePorDni((dni_AEliminar,)):
-                tablaClientes.delete(*tablaClientes.get_children())
-                llenar_tabla()
-                print("Se elimino al cliente correctamente")
+            if dni_AEliminar == '': # Si el cliente no ingresa ningun dni entonces nos ahoramos la busqueda
+                pass
             else:
-                popup_error()     
+                if cliente_db.eliminarClientePorDni((dni_AEliminar,)):
+                    tablaClientes.delete(*tablaClientes.get_children())
+                    llenar_tabla()
+                    crearErrorPopUp("Cliente eliminado correctamente!", color="#4CAF50")
+                else:
+                    crearErrorPopUp("Error, no existe un cliente\ncon ese DNI!")    
 
 def ventanaGestionDeOrdenes(ventanaAnterior):
 
@@ -1086,17 +1089,19 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         botonBuscar = tk.Button(ventanaVerOrdenes, text="Buscar", command=lambda: buscar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para buscar el cliente por el atributo que haya elegido
 
         # Declarar tabla
-        tablaOrdenes = ttk.Treeview(ventanaVerOrdenes, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha"), show="headings")
+        tablaOrdenes = ttk.Treeview(ventanaVerOrdenes, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha", "estado"), show="headings")
         tablaOrdenes.heading("id_orden", text="Id de orden", anchor="center")
         tablaOrdenes.heading("dni_cliente", text="DNI del cliente", anchor="center")
         tablaOrdenes.heading("id_producto", text="Id del producto", anchor="center")
         tablaOrdenes.heading("cantidad", text="Cantidad", anchor="center")
         tablaOrdenes.heading("fecha", text="Fecha", anchor="center")
+        tablaOrdenes.heading("estado", text="Estado", anchor="center")
         tablaOrdenes.column("id_orden", width=80, anchor="center")
         tablaOrdenes.column("dni_cliente", width=80, anchor="center")
         tablaOrdenes.column("id_producto", width=80, anchor="center")
         tablaOrdenes.column("cantidad", width=80, anchor="center")
         tablaOrdenes.column("fecha", width=100, anchor="center")
+        tablaOrdenes.column("estado", width=100, anchor="center")
 
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
@@ -1190,17 +1195,19 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         botonAgregar = tk.Button(ventanaAgregarOrden, text="Agregar", command=lambda: agregar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
 
         # Declarar tabla
-        tablaOrdenes = ttk.Treeview(ventanaAgregarOrden, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha"), show="headings")
+        tablaOrdenes = ttk.Treeview(ventanaAgregarOrden, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha", "estado"), show="headings")
         tablaOrdenes.heading("id_orden", text="Id de orden", anchor="center")
         tablaOrdenes.heading("dni_cliente", text="DNI del cliente", anchor="center")
         tablaOrdenes.heading("id_producto", text="Id del producto", anchor="center")
         tablaOrdenes.heading("cantidad", text="Cantidad", anchor="center")
         tablaOrdenes.heading("fecha", text="Fecha", anchor="center")
+        tablaOrdenes.heading("estado", text="Estado", anchor="center")
         tablaOrdenes.column("id_orden", width=80, anchor="center")
         tablaOrdenes.column("dni_cliente", width=80, anchor="center")
         tablaOrdenes.column("id_producto", width=80, anchor="center")
         tablaOrdenes.column("cantidad", width=80, anchor="center")
         tablaOrdenes.column("fecha", width=100, anchor="center")
+        tablaOrdenes.column("estado", width=100, anchor="center")
 
         # Posicionar header + subtitulo
         headerPrincipal.grid(row=1, column=2, sticky="nsew")
@@ -1253,14 +1260,14 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
             fecha_ingresada = calendarioFecha.get_date()
             if dni_cliente_ingresado == '' or id_producto_ingresado == '' or cantidad_ingresada == '' or fecha_ingresada == '':
                 crearErrorPopUp("Atencion, falta ingresar algun\nparametro!", color="#FFC107") # Si alguno de los valores no es ingresado entonces no vale la pena ejecutar el codigo, asi evitamos generar errores innecesarios
-            elif not isinstance(cantidad_ingresada, int):
-                crearErrorPopUp("Error, la cantidad ingresada tiene\nque ser un numero")
+            elif not cantidad_ingresada.isdigit():
+                crearErrorPopUp("Error, la cantidad ingresada tiene\nque ser un numero entero\npositivo!")
             else:
                 resultado = orden_db.agregarOrden(dni_cliente_ingresado, id_producto_ingresado, cantidad_ingresada, fecha_ingresada)
                 if resultado == 5: # Exito
                     tablaOrdenes.delete(*tablaOrdenes.get_children())
                     llenar_tabla()
-                    popup_exito()
+                    crearErrorPopUp("Se agrego la orden correctamente!", color="#4CAF50")
                 elif resultado == 1: 
                     crearErrorPopUp("Error, la cantidad del pedido\nno puede ser menor a 0") # La cantidad del pedido no puede ser menor a 0
                 elif resultado == 2:
@@ -1280,7 +1287,133 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         ventanaAgregarOrden.protocol("WM_DELETE_WINDOW", on_close)
 
     def modificarOrden():
-        pass
+        db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+        nonlocal ventana_gestionOrdenes_abierta
+
+        if ventana_gestionOrdenes_abierta:
+            return 
+        
+        ventanaGestionDeOrdenes.withdraw()
+
+        # Declarar ventana de gestion de Ordens
+        ventana_gestionOrdenes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaModificarOrden = tk.Toplevel()
+        ventanaModificarOrden.config(bg="#d1d1e0")
+        ventanaModificarOrden.title("Gestion de ordenes")
+        ventanaModificarOrden.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaModificarOrden)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaModificarOrden, text="Modificar ordenes", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaModificarOrden, text="Ingresa los valores para cambiarle al orden", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaModificarOrden, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+
+        # Declarar label de atributos para Modificar
+        labeIdOrden = tk.Label(ventanaModificarOrden, text="ID de la orden a modificar: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelIdProducto = tk.Label(ventanaModificarOrden, text="ID producto nuevo: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelDniCliente = tk.Label(ventanaModificarOrden, text="DNI cliente nuevo: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelCantidad = tk.Label(ventanaModificarOrden, text="Cantidad nueva: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelFecha = tk.Label(ventanaModificarOrden, text="Nueva fecha: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+
+        # Declarar input textarea + boton buscar
+        textareaIdOrdenAModificar = Text(ventanaModificarOrden, height=max, width=25)
+        textareaIdProductoAModificar= Text(ventanaModificarOrden, height=max, width=25)
+        textAreaDniClienteAModificar = Text(ventanaModificarOrden, height=max, width=25)
+        textAreaCantidadAModificar = Text(ventanaModificarOrden, height=max, width=25)
+        textAreaFechaAModificar = Text(ventanaModificarOrden, height=max, width=25)
+        botonModificar = tk.Button(ventanaModificarOrden, text="Modificar", command=lambda: Modificar()) # Si el usuaario hace click en este boton, vamos a ejecutar el codigo para Modificar la orden con los parametros que haya ingresado
+
+        # Declarar tabla
+        tablaOrdenes = ttk.Treeview(ventanaModificarOrden, columns= ("id_orden", "dni_cliente", "id_producto", "cantidad", "fecha", "estado"), show="headings")
+        tablaOrdenes.heading("id_orden", text="Id de orden", anchor="center")
+        tablaOrdenes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaOrdenes.heading("id_producto", text="Id del producto", anchor="center")
+        tablaOrdenes.heading("cantidad", text="Cantidad", anchor="center")
+        tablaOrdenes.heading("fecha", text="Fecha", anchor="center")
+        tablaOrdenes.heading("estado", text="Estado", anchor="center")
+        tablaOrdenes.column("id_orden", width=80, anchor="center")
+        tablaOrdenes.column("dni_cliente", width=80, anchor="center")
+        tablaOrdenes.column("id_producto", width=80, anchor="center")
+        tablaOrdenes.column("cantidad", width=80, anchor="center")
+        tablaOrdenes.column("fecha", width=100, anchor="center")
+        tablaOrdenes.column("estado", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+
+        # Posicionar label de atributos para Modificar
+        labeIdOrden.grid(row=3, column=1, sticky="e")
+        labelIdProducto.grid(row=4, column=1, sticky="e")
+        labelDniCliente.grid(row=5, column=1, sticky="e")
+        labelCantidad.grid(row=6, column=1, sticky="e")
+        labelFecha.grid(row=7, column=1, sticky="e")
+
+        # Posicionar input textarea + dropdownCategoria + boton Modificar
+        textareaIdOrdenAModificar.grid(row=3, column=2, sticky="we")
+        textareaIdProductoAModificar.grid(row=4, column=2, sticky="we")
+        textAreaDniClienteAModificar.grid(row=5, column=2, sticky="we")
+        textAreaCantidadAModificar.grid(row=6, column=2, sticky="we")
+        textAreaFechaAModificar.grid(row=7, column=2, sticky="we")
+        botonModificar.grid(row=7, column=3, sticky="w")
+
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaOrdenes.grid(row=8, column=2, sticky="nsew")
+       
+        def llenar_tabla():
+            lista_ordenes = orden_db.verOrdenes()
+            for orden in lista_ordenes:
+                tablaOrdenes.insert("", "end", values=orden)
+        
+        llenar_tabla()
+        def Modificar(): 
+            db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+            id_orden_a_modificar = textareaIdOrdenAModificar.get("1.0", "end").strip()
+            id_producto_nuevo = textareaIdProductoAModificar.get("1.0", "end").strip()
+            dni_cliente_nuevo = textAreaDniClienteAModificar.get("1.0", "end").strip()
+            cantidad_nueva = textAreaCantidadAModificar.get("1.0", "end").strip()
+            fecha_nueva = textAreaFechaAModificar.get("1.0", "end").strip()
+            if id_orden_a_modificar == '': # Si el id esta vacio entonces vamos a ignorar esta parte del codigo ya que seria innecesario ejecutuarla si el usuario nisiquiere ingreso un dni. Asi evitamos que haya un error de sql por faltar valor en el procedimiento o por tener valores incorrectos en otros parametros
+                 crearErrorPopUp("Atencion, no ingresaste\nun ID de orden", color="#FFC107")
+            else:
+                if id_producto_nuevo == '' and dni_cliente_nuevo == '' and cantidad_nueva == '' and fecha_nueva == '':
+                    pass # Si el usuario no ingreso ningun valor entonces nos vamos a ahorrar la ejecucion del procedimiento
+                else:
+                    if cantidad_nueva == '':
+                        cantidad_nueva = None # Convertimos la cantidad a None si no se le ingresa ningun valor: de esta manera, la conversion a sql lo convierte en un valor NULL y, al cumplir con una condicion, el codigo sql evita atualizar el stock del producto nuevo ingresado o el antiguo ya presente en la orden siendo modificada
+                    if id_producto_nuevo == '':
+                        id_producto_nuevo = None
+                    if dni_cliente_nuevo == '':
+                        dni_cliente_nuevo = None
+                    if fecha_nueva == '':
+                        fecha_nueva = None # Hacemos lo mismo con todas las variables para que, al cumplirse cierta condicion en el codigo sql, los valores no van a ser modificado sino que se van a quedar como estaban antes.
+                    resultado = orden_db.modificarOrdenPorId(id_orden_a_modificar, dni_cliente_nuevo, id_producto_nuevo, cantidad_nueva, fecha_nueva)
+                    if resultado == 1:
+                        crearErrorPopUp("Error, no existe una orden\ncon ese ID")
+                    elif resultado == 2:
+                        crearErrorPopUp("Error, no existe un cliente\ncon ese DNI")
+                    elif resultado == 3:
+                        crearErrorPopUp("Error, no existe un producto\ncon ese ID")
+                    elif resultado == 4:
+                        crearErrorPopUp("Error, la cantidad nueva no\npuede ser negativa")
+                    elif resultado == 5:
+                        crearErrorPopUp("Error, el stock del produto\nno es suficiente para abastecer\nel nuevo cambio de cantidad")
+                    elif resultado == 7:
+                        crearErrorPopUp("Error, no hay stock suficiente\ndel nuevo producto ingresado")
+                    elif resultado == 8:
+                        crearErrorPopUp("Error, la orden ya fue entregada,\nya no puede ser modificada")
+                    else:
+                        tablaOrdenes.delete(*tablaOrdenes.get_children())
+                        llenar_tabla()
+                        crearErrorPopUp("Orden modificada correctamente!", color="#4CAF50")
+                     
 
     def eliminarOrden():
         pass

@@ -38,7 +38,17 @@ class Orden:
         queryResultado = "SELECT @resultado"
         resultado = self.db.obtener_datos(queryResultado)[0][0]
 
-        return resultado # Es True si se modifica el producto y False si no hay producto con ese id. DESPUES, EN MENU.PY ESTE OUTPUT CAUSA DISTINTOS EFECTOS
+        return resultado # devuelv edistintos numeros y cada numero significa un error o advertencia distinta
+    
+    def eliminarOrdenPorId(self, id):
+        query = "CALL EliminarOrdenPorID(%s, @resultado)"
+        valores = (id)
+        self.db.ejecutar(query, valores)
+
+        queryResultado = "SELECT @resultado"
+        resultado = self.db.obtener_datos(queryResultado)[0][0]
+
+        return resultado
 
 def Tester():
     bdd = BaseDeDatos("127.0.0.1", "root", "ratadecueva", "kakidb")

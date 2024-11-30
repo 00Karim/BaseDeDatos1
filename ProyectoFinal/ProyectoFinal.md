@@ -87,11 +87,14 @@ CREATE TABLE OrdenesDeCompra(
     id_producto INT DEFAULT NULL,
     cantidad INT,
     fecha DATE,
+    estado VARCHAR(20),
     FOREIGN KEY (dni_cliente) REFERENCES Clientes(dni_cliente)
     ON UPDATE CASCADE ON DELETE SET NULL, -- De esta manera, cuando se elimine un cliente (lo cual no seria posible sin poner DEFAULT NULL despues de declara el atributo) el atibuto va a pasar a ser Null y asi no hay inconsistencias en la tabla: Si un cliente no existe, entonces no pudo haber hecho un pedido
     FOREIGN KEY (id_producto) REFERENCES Productos(id_producto)
-    ON UPDATE CASCADE ON DELETE SET NULL -- Lo mismo con el producto: Si un producto no existe, entonces no pudo haber sido encargado
+    ON UPDATE CASCADE ON DELETE SET NULL, -- Lo mismo con el producto: Si un producto no existe, entonces no pudo haber sido encargado
+    CHECK(estado IN ('En proceso', 'Entregado'))
 )
+
 ```
 
 # SQL GET GENERAL DE TABLA
@@ -412,28 +415,76 @@ IN categoria_nueva VARCHAR(150),
 OUT resultado INT
 )
 BEGIN
-    IF cantidad_disponible_nueva < 0 THEN
-        SET resultado = 1; -- La cantidad nueva no puede ser menor a 0
-	ELSEIF (SELECT COUNT(*) FROM productos WHERE id_producto = id)  = 0 THEN
-		SET resultado = 2; -- El producto elegido no existe
-    ELSE
-        UPDATE productos
-        SET 
-            nombre = CASE 
-                        WHEN nombre_nuevo != '' THEN nombre_nuevo 
-                        ELSE nombre 
-                     END,
-            cantidad_disponible = CASE 
-                                     WHEN cantidad_disponible_nueva IS NOT NULL THEN cantidad_disponible_nueva 
-                                     ELSE cantidad_disponible 
-                                  END,
-            categoria = CASE 
-                           WHEN categoria_nueva != '' THEN categoria_nueva 
-                           ELSE categoria 
-                        END
-        WHERE productos.id_producto = id;
-        SET resultado = 3; -- Exito, se modifico correctamente
+	DECLARE cantidad_orden_vieja INT; -- Esta variable va a almacenar el valor de la cantidad de la orden que vamos a modificar y asi poder modificar los stocks de los productos
+    DECLARE producto_orden_vieja INT; -- Con esta variable vamos a saber si el producto va a ser cambiado y asi vamos a saber que stocks de que productos van a tener que ser modificados, porque esto implica que la orden anterior estaba mal hecha por lo que vamos a tener que recuperar esa cantidad ordenada y luego sacarle la cantidad nueva al producto ingresado nuevo
+    DECLARE cantidad_disponible_producto_nuevo INT; -- Con esta variable vamos a saber si el stock del producto elegido va a ser suficiente para abastecer la orden. Esta variable puede ser aplicada en ambos casos: Que el producto siga siendo el mismo o que el producto de la orden cambie
+    SET cantidad_orden_vieja = (SELECT cantidad FROM ordenesdecompra WHERE id_orden = orden_id); -- Obtenemos la cantidad actual de la orden
+    SET producto_orden_vieja = (SELECT id_producto FROM ordenesdecompra WHERE id_orden = orden_id); -- Obtenemos el producto actual de la orden
+    SET cantidad_disponible_producto_nuevo = (SELECT cantidad_disponible FROM productos WHERE id_producto = producto_id_nuevo); -- Obtenemos el stock del nuevo producto
+    SET resultado = 6; -- Inicializamos el valor en 6, luego si este valor sigue siendo 6 significa que los valores son todos correctos, entonces vamos a ejecutar el código que modifica el producto
+
+    IF (SELECT COUNT(*) FROM ordenesdecompra WHERE id_orden = orden_id) = 0 THEN -- Chequear que el id_orden sea válido
+		SET resultado = 1; -- No existe una orden con ese id
+	ELSEIF (SELECT COUNT(*) FROM clientes WHERE dni_cliente = cliente_dni_nuevo) = 0 THEN -- Chequear que el dni sea válido
+		SET resultado = 2; -- No existe un cliente con ese dni
+	ELSEIF (SELECT COUNT(*) FROM productos WHERE id_producto = producto_id_nuevo) = 0 THEN -- Chequear que el producto id sea válido
+		SET resultado = 3; -- No existe un producto con ese id
+	ELSEIF cantidad_orden_nueva < 0 THEN
+		SET resultado = 4; -- La cantidad nueva no puede ser negativa
+	ELSEIF producto_id_nuevo = producto_orden_vieja THEN -- Si el producto sigue siendo el mismo
+		IF cantidad_disponible_producto_nuevo + (cantidad_orden_vieja - cantidad_orden_nueva) < 0 THEN -- Chequear que haya suficiente stock para la cantidad nueva
+			SET resultado = 5; -- El stock del producto no es suficiente para abastecer el cambio de tamaño de la orden
+		ELSE -- Si hay stock suficiente para efectuar la orden:
+			UPDATE productos
+            SET 
+                cantidad_disponible = CASE 
+                    WHEN cantidad_orden_vieja IS NOT NULL AND cantidad_orden_nueva IS NOT NULL THEN cantidad_disponible + (cantidad_orden_vieja - cantidad_orden_nueva) 
+                    ELSE cantidad_disponible
+                END, -- Modificamos el stock del producto devolviendo la cantidad usada en la orden cambiada y efectuando la resta de stock usando la nueva cantidad ordenada: cantidad_disponible = cantidad_disponible + (cantidad_orden_vieja - cantidad_orden_nueva)
+                ventas_totales = CASE 
+                    WHEN cantidad_orden_nueva IS NOT NULL THEN ventas_totales + (cantidad_orden_nueva - cantidad_orden_vieja) 
+                    ELSE ventas_totales
+                END -- También modificamos las ventas totales
+            WHERE id_producto = producto_id_nuevo;
+            SET resultado = 6; -- 6 = Hasta ahora todo salió bien y podemos proseguir con modificar la orden
+        END IF;
+	ELSEIF producto_id_nuevo != producto_orden_vieja THEN -- Si los productos cambiaron
+		IF cantidad_disponible_producto_nuevo - cantidad_orden_nueva < 0 THEN -- Chequear que haya suficiente stock para ordenar del nuevo producto
+			SET resultado = 7; -- No hay stock suficiente en el nuevo producto ingresado
+		ELSE -- Si hay stock suficiente:
+			UPDATE productos
+            SET 
+                cantidad_disponible = CASE 
+                    WHEN cantidad_orden_nueva IS NOT NULL THEN cantidad_disponible - cantidad_orden_nueva
+                    ELSE cantidad_disponible
+                END, -- Modificamos el stock del producto nuevo: cantidad_disponible = cantidad_disponible - cantidad_orden_nueva
+                ventas_totales = CASE 
+                    WHEN cantidad_orden_nueva IS NOT NULL THEN ventas_totales + cantidad_orden_nueva
+                    ELSE ventas_totales
+                END -- Modificamos las ventas totales del producto nuevo
+            WHERE id_producto = producto_id_nuevo; 
+			UPDATE productos
+            SET 
+                cantidad_disponible = CASE 
+                    WHEN cantidad_orden_vieja IS NOT NULL THEN cantidad_disponible + cantidad_orden_vieja
+                    ELSE cantidad_disponible
+                END, -- Recuperamos todo el stock del producto cambiado: cantidad_disponible = cantidad_disponible + cantidad_orden_vieja
+                ventas_totales = CASE 
+                    WHEN cantidad_orden_vieja IS NOT NULL THEN ventas_totales - cantidad_orden_vieja
+                    ELSE ventas_totales
+                END -- Recuperamos las ventas totales del producto cambiado
+            WHERE id_producto = producto_orden_vieja; 
+			SET resultado = 6; -- 6 = Hasta ahora todo salió bien y podemos proseguir con modificar la orden
+        END IF;
     END IF;
+
+    -- Finalmente, si no hubo ninguna excepción, modificamos la orden correspondiente con los valores ingresados
+    IF resultado = 6 THEN
+		UPDATE ordenesdecompra
+        SET dni_cliente = cliente_dni_nuevo, id_producto = producto_id_nuevo, cantidad = cantidad_orden_nueva, fecha = fecha_nueva
+        WHERE id_orden = orden_id;
+        SET resultado = 6; -- Se modificó la orden correctamente
+	END IF;
 END //
 DELIMITER ;
 ```
@@ -528,64 +579,114 @@ DELIMITER ;
 DELIMITER //
 CREATE PROCEDURE ModificarOrdenPorId(
 IN orden_id INT,
-IN cliente_dni_nuevo VARCHAR(150),
+IN cliente_dni_nuevo INT,
 IN producto_id_nuevo INT,
 IN cantidad_orden_nueva INT,
 IN fecha_nueva DATE,
-OUT resultado BOOLEAN
+OUT resultado INT
 )
-	BEGIN
-		DECLARE cantidad_orden_vieja INT; -- Esta variable va a almacenar el valor de la cantidad de la orden que vamos a modificar y asi poder modificar los stocks de los productos
-        DECLARE producto_orden_vieja INT; -- Con esta variable vamos a saber si el producto va a ser cambiado y asi vamos a saber que stocks de ue productos van a tener que ser modificado, porque esto implica que la orden anterior estaba mal hecha por lo que vamos a tener que recuperar esa cantidad ordenada y luego sacarle la cantidad nueva al producto ingresado nuevo
-        DECLARE cantidad_disponible_producto_nuevo INT; -- Con esta variable vamos a saber si el stock del producto elegido va a ser suficiente para abastecer la orden. Esta variable puede ser aplicada en ambos casos: Que el producto siga siendo el mismo o que el producto de la orden cambie
-        SET cantidad_orden_vieja = (SELECT cantidad FROM ordenesdecompra WHERE id_orden = orden_id);
-        SET producto_orden_vieja = (SELECT id_producto FROM ordenesdecompra WHERE id_orden = orden_id);
-        SET cantidad_disponible_producto_nuevo = (SELECT cantidad_disponible FROM productos WHERE id_producto = producto_id_nuevo);
-        SET resultado = TRUE;
-        IF (SELECT COUNT(*) FROM ordenesdecompra WHERE id_orden = orden_id) = 0 THEN -- Chequear que el id_orden sea valido
-			SET resultado = FALSE;
-		ELSEIF (SELECT COUNT(*) FROM clientes WHERE dni_cliente = cliente_dni_nuevo) = 0 THEN -- Chequear que el dni sea valido
-			SET resultado = FALSE;
-		ELSEIF (SELECT COUNT(*) FROM productos WHERE id_producto = producto_id_nuevo) = 0 THEN -- Chequear que el producto id sea valido
-			SET resultado = FALSE;
-		ELSEIF cantidad_orden_nueva < 0 THEN
-			SET resultado = FALSE;
-		ELSEIF producto_id_nuevo = producto_orden_vieja THEN -- Si el producto sigue siendo el mismo
-			IF cantidad_disponible_producto_nuevo + (cantidad_orden_vieja - cantidad_orden_nueva)	< 0 THEN -- Chequear que haya suficiente stock para la cantidad nueva. Osea: cantidad_disponible + (cantidad_orden_vieja - cantidad_orden_nueva) < 0 -->  FALSE
-				SET resultado = FALSE;
-			ELSE -- Si hay stock suficiente para efectuar la orden:
-				UPDATE productos
-                SET cantidad_disponible = cantidad_disponible + (cantidad_orden_vieja - cantidad_orden_nueva)
-                WHERE id_producto = producto_id_nuevo; -- Modificamos el stock del producto devolviendo la cantidad usada en la orden cambiada y efectuando la resta de stock usando la nueva cantidad ordenada: cantidad_disponible = cantidad_disponible + (cantidad_orden_vieja - cantidad_orden_nueva)
-				UPDATE productos
-                SET ventas_totales = ventas_totales + (cantidad_orden_vieja - cantidad_orden_nueva)
-                WHERE id_producto = producto_id_nuevo; -- Tambien modificamos las ventas totales
-            END IF;
-		ELSEIF producto_id_nuevo != producto_orden_vieja THEN -- Si los productos cambiaron
-			IF cantidad_disponible_producto_nuevo - cantidad_orden_nueva < 0 THEN -- Chequear que haya suficiente stock para ordenar del nuevo producto. Osea: if cantidad_disponible - cantidad_orden_nueva < 0 --> FALSE
-				SET resultado = FALSE; -- No hay stock suficiente
-			ELSE -- Si hay stock suficiente:
-				UPDATE productos
-                SET cantidad_disponible = cantidad_disponible - cantidad_orden_nueva
-                WHERE id_producto = producto_id_nuevo; -- Modificamos el stock del producto nuevo. Osea: cantidad_disponible = cantidad_disponible - cantidad_orden_nueva
-				UPDATE productos
-                SET cantidad_disponible = cantidad_disponible + cantidad_orden_vieja
-                WHERE id_producto = producto_orden_vieja; -- Por ultimo recuperamos todo el stock del producto cambiado: cantidad_disponible = cantidad_disponible + cantidad_orden_vieja
-				UPDATE productos
-                SET ventas_totales = ventas_totales + cantidad_orden_nueva
-                WHERE id_producto = producto_id_nuevo; -- Modificamos las ventas totales del producto nuevo
-                UPDATE productos
-                SET ventas_totales = ventas_totales - cantidad_orden_vieja
-                WHERE id_producto = producto_orden_vieja; -- Recuperamos las ventas totales del producto cambiado
-            END IF;
+BEGIN
+    DECLARE cantidad_orden_vieja INT; -- Esta variable va a almacenar el valor de la cantidad de la orden que vamos a modificar y asi poder modificar los stocks de los productos
+    DECLARE producto_orden_vieja INT; -- Con esta variable vamos a saber si el producto va a ser cambiado y asi vamos a saber que stocks de que productos van a tener que ser modificados
+    DECLARE dni_cliente_viejo VARCHAR(150); -- Agregado para almacenar el DNI del cliente viejo
+    DECLARE cantidad_disponible_producto_nuevo INT; -- Con esta variable vamos a saber si el stock del producto elegido va a ser suficiente para abastecer la orden.
+	DECLARE fecha_vieja DATE; -- Declaramos la fecha de la orden asi en caso de que no se ingrese una fecha podemos volver a ponerla como estaba usando esta variable
+    
+    -- Obtenemos los valores actuales de la orden asi en caso de que sean nulo los podemos guardar y volver a insertar en la fila asi solo se modifican los valores que fueron ingresados
+    SET cantidad_orden_vieja = (SELECT cantidad FROM ordenesdecompra WHERE id_orden = orden_id);
+    SET producto_orden_vieja = (SELECT id_producto FROM ordenesdecompra WHERE id_orden = orden_id);
+    SET dni_cliente_viejo = (SELECT dni_cliente FROM ordenesdecompra WHERE id_orden = orden_id); 
+    IF producto_id_nuevo IS NULL THEN
+		SET cantidad_disponible_producto_nuevo = ( -- Agregamos esto porque si no lo agregabamos entonces mas adelante cuando se intentaba definir si habia suficiente stock, la cantidad disponible se inicializaba en un valor erroneo y por ende no se activaba el error de que el stock no es suficiente entonces se podia agregar cualquier cantidad
+			SELECT p.cantidad_disponible 
+			FROM productos p
+			INNER JOIN ordenesdecompra o ON p.id_producto = o.id_producto
+			WHERE o.id_orden = orden_id
+			LIMIT 1
+		);
+    ELSE
+		SET cantidad_disponible_producto_nuevo = (SELECT cantidad_disponible FROM productos WHERE id_producto = producto_id_nuevo);
+    END IF;
+    IF fecha_nueva IS NULL THEN
+		SET fecha_vieja = ( -- Agregamos esto porque si no lo agregabamos entonces mas adelante la fecha se actualizaba como None
+			SELECT o.fecha 
+			FROM ordenesdecompra o
+			WHERE o.id_orden = orden_id
+			LIMIT 1
+		);
+	END IF;
+    SET resultado = 6; -- Inicializamos el valor en 6, si no ocurre ningun error a lo largo del procedimiento entonces resultado = 6 va a cumplir cierta condicion mas adelante que permite continuar con la modificacion de la orden
+    -- aca empieza la validacion de los parametros
+    IF (SELECT COUNT(*) FROM ordenesdecompra WHERE id_orden = orden_id) = 0 THEN
+        SET resultado = 1; -- No existe una orden con ese id
+    ELSEIF cliente_dni_nuevo IS NOT NULL THEN -- Solo verificamos el DNI si fue proporcionado
+        IF (SELECT COUNT(*) FROM clientes WHERE dni_cliente = cliente_dni_nuevo) = 0 THEN
+            SET resultado = 2; -- No existe un cliente con ese dni
         END IF;
-        -- Finalmente, si no hubo ninguna excepcion, modificamos la orden correspondiente con los valores ingresados
-        IF resultado = TRUE THEN
-			UPDATE ordenesdecompra
-            SET dni_cliente = cliente_dni_nuevo, id_producto = producto_id_nuevo, cantidad = cantidad_orden_nueva, fecha = fecha_nueva
-            WHERE id_orden = orden_id;
-		END IF;
-    END //
+    ELSEIF producto_id_nuevo IS NOT NULL THEN -- Solo verificamos el producto si un producto fue ingresado
+        IF (SELECT COUNT(*) FROM productos WHERE id_producto = producto_id_nuevo) = 0 THEN
+            SET resultado = 3; -- No existe un producto con ese id
+        END IF;
+    ELSEIF cantidad_orden_nueva < 0 THEN
+        SET resultado = 4; -- La cantidad nueva no puede ser negativa
+    ELSEIF producto_id_nuevo = producto_orden_vieja OR producto_id_nuevo IS NULL THEN -- Si el producto sigue siendo el mismo
+        IF cantidad_disponible_producto_nuevo + (cantidad_orden_vieja - cantidad_orden_nueva) < 0 THEN
+            SET resultado = 5; -- El stock del producto no es suficiente para abastecer el cambio de tamaño de la orden
+        ELSE
+            UPDATE productos
+            SET 
+                cantidad_disponible = CASE 
+                    WHEN cantidad_orden_vieja IS NOT NULL AND cantidad_orden_nueva IS NOT NULL THEN cantidad_disponible + (cantidad_orden_vieja - cantidad_orden_nueva) 
+                    ELSE cantidad_disponible
+                END,
+                ventas_totales = CASE 
+                    WHEN cantidad_orden_nueva IS NOT NULL THEN ventas_totales + (cantidad_orden_nueva - cantidad_orden_vieja) 
+                    ELSE ventas_totales
+                END
+            WHERE id_producto = producto_id_nuevo;
+        END IF;
+    END IF;
+    IF producto_id_nuevo != producto_orden_vieja THEN -- Si los productos cambiaron, LO Ponemos en if porque por alguna razon cuando esta en elseif no es accesible
+        IF cantidad_disponible_producto_nuevo < cantidad_orden_nueva THEN
+            SET resultado = 7; -- No hay stock suficiente en el producto nuevo
+        ELSE
+            UPDATE productos
+            SET 
+                cantidad_disponible = CASE 
+                    WHEN cantidad_orden_nueva IS NOT NULL THEN cantidad_disponible - cantidad_orden_nueva
+                    ELSE cantidad_disponible
+                END,
+                ventas_totales = CASE 
+                    WHEN cantidad_orden_nueva IS NOT NULL THEN ventas_totales + cantidad_orden_nueva
+                    ELSE ventas_totales
+                END
+            WHERE id_producto = producto_id_nuevo;
+
+            UPDATE productos
+            SET 
+                cantidad_disponible = CASE 
+                    WHEN cantidad_orden_vieja IS NOT NULL THEN cantidad_disponible + cantidad_orden_vieja
+                    ELSE cantidad_disponible
+                END,
+                ventas_totales = CASE 
+                    WHEN cantidad_orden_vieja IS NOT NULL THEN ventas_totales - cantidad_orden_vieja
+                    ELSE ventas_totales
+                END
+            WHERE id_producto = producto_orden_vieja;
+        END IF;
+    END IF;
+
+    -- Finalmente, si no hubo ninguna excepción, modificamos la orden correspondiente
+    IF resultado = 6 THEN
+        UPDATE ordenesdecompra
+        SET 
+            dni_cliente = CASE WHEN cliente_dni_nuevo IS NOT NULL THEN cliente_dni_nuevo ELSE dni_cliente_viejo END, -- Solo actualiza el dni si se proporcionó
+            id_producto = CASE WHEN producto_id_nuevo IS NOT NULL THEN producto_id_nuevo ELSE producto_orden_vieja END, -- Solo actualiza el producto si se proporcionó
+            cantidad = cantidad_orden_nueva, 
+            fecha = CASE WHEN fecha_nueva IS NULL THEN fecha_vieja ELSE fecha_nueva END
+        WHERE id_orden = orden_id;
+    END IF;
+END //
 DELIMITER ;
 ```
 
