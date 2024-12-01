@@ -2,7 +2,7 @@ Guia para hacer funcionar el Proyecto
 
 1 - Instalar el modulo tkcalendar en windows con el siguiente commando: pip install tkcalendar
 
-2 - Generar las tablas con sus contenidos ejecutando el query dentro de tablas.sql en MySQL workbench
+2 - Generar las tablas con sus contenidos ejecutando el query dentro de tablasYcontenidos.sql en MySQL workbench
 
 3 - Generar los procedimientos necesarios ejecutando el codigo dentro de procedimientos.sql en MySQL Workbench
 
