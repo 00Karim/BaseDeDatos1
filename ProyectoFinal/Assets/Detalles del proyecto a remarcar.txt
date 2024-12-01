@@ -1,0 +1,55 @@
+Guia para hacer funcionar el Proyecto
+
+1 - Instalar el modulo tkcalendar en windows con el siguiente commando: pip install tkcalendar
+
+2 - Generar las tablas con sus contenidos ejecutando el query dentro de tablas.sql en MySQL workbench
+
+3 - Generar los procedimientos necesarios ejecutando el codigo dentro de procedimientos.sql en MySQL Workbench
+
+4 - Arriba del todo, en menu.py, configurar la conexion a la base de datos ingresandos los valores correspondientes
+dentro de  "BaseDeDatos("127.0.0.1", "<nombre de usuario>", "<contrasenia>", "<nombre Base de datos>")"
+
+5 - El codigo esta listo para probar :D
+
+
+Detalles del proyecto a remarcar:
+
+En “Ver productos”, “Ver clientes”, y “Ver órdenes” si se 
+clickea en “buscar” sin haber escrito nada, se muestra toda 
+la lista de productos, clientes, u órdenes.
+
+Se puede buscar por palabras acotadas, es decir, una porción 
+del nombre del producto, cliente, u orden y ya debería aparecer 
+en la lista.
+
+En “Modificar productos”, “Modificar clientes”, y “Modificar órdenes” 
+no es necesario ingresar todos los atributos para modificar producto,
+se pueden ingresar un solo atributo nuevo y entonces se va a modificar
+ese solo.
+
+Las órdenes nuevas estan por defecto en el estado “En proceso”, y el 
+usuario en la ventana "Modificar órdenes” tiene la opción de cambiar 
+su estado  a “Entregado”.
+
+A veces, durante la ejecucion del codigo, ocurre el siguiente error:
+	- "NameError: cannot access free variable '<funcion>' where 
+	   it is not associated with a value in enclosing scope"
+El error se termina arreglando por si solo una vez que se Vuelve a ejecutar el 
+codigo. Puede que sea algo de Visual Studio.
+
+La funcion ModificarOrdenPorId tiene agregados los siguientes comportamientos:
+1 - Si la orden ya fue entregada entonces no se puede modificar 
+ningun valor
+2 - Si el producto es modificado entonces el stock del producto
+que estaba antes es devuelto y sus ventas totales disminuidas.
+Mientras que el stock y las ventas del otro producto hacen lo 
+opuesto. Si el producto nuevo no tiene stock suficiente para
+sufrir la disminucion de cantidad que ocurriria con la efectuacion
+de esa orden entonces salta un popup.
+3 - Si el producto siguie siendo el mismo, si hay un cambio de cantidad
+se chequea si esa Nueva suma puede ser extraida y si eso es possible
+entonces le sacamos la diferencia al stock y a las ventas totales. Si 
+la cantidad es mas chica que la cantidad anterior seleccionada entonces
+el stock va a aumentar y las ventas totales disminuir y viceversa.
+4 - Etc (Basicamente, hicimos el procedimiento lo mas coherente posible).
+
