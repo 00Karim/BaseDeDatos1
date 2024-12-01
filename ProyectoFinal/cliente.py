@@ -8,6 +8,14 @@ class Cliente:
         query = "CALL ObtenerTablas('clientes')"
         return self.db.obtener_datos(query)
     
+    def verClientesTabla2(self): # Estta funcion devuelve la tabla clientes con una columna nueva con la cantidad de pedidos por cliente
+        query = "CALL ObtenerTablaClientes2();"
+        return self.db.obtener_datos(query)
+    
+    def verClientesAlfabeticamente(self):
+        query = "SELECT * FROM clientes ORDER BY nombre"
+        return self.db.obtener_datos(query)
+    
     def verClientePorAtributo(self, dni = None, nombre = None, apellido = None): # Dependiendo de que atributo sea ingresado se va a elegir un query y un valor correspondientes
         if dni is not None:
             query = "CALL ObtenerClientePorDNI(%s)"

@@ -118,40 +118,6 @@ DELIMITER ;
 
 ```
 
-# SQL AUMENTAR LAS VENTAS TOTALES DE PRODUCTO Y DISMINUIR CANTIDAD_DISPONIBLE
-```sql
-DELIMITER //
-
-CREATE PROCEDURE ActualizarInventarioVentas(
-    IN producto_id INT,
-    IN cantidad_vendida INT
-)
-BEGIN
-    UPDATE Productos
-    SET ventas_totales = ventas_totales + cantidad_vendida
-    WHERE id_producto = producto_id;
-
-    UPDATE Productos
-    SET cantidad_disponible = cantidad_disponible - cantidad_vendida
-    WHERE id_producto = producto_id;
-END //
-
-DELIMITER ;
-```
-
-# SQL OBTENER LA CANTIDAD TOTAL DE ORDENES DEL CLIENTE (Con un procedimiento que COUNT * las ordenes con el id del cliente)
-```sql
-DELIMITER //
-CREATE PROCEDURE ObtenerCantOrdCliente(
-    IN cliente_id INT
-)
-BEGIN
-    SELECT COUNT(*) FROM ordenesdecompra
-    WHERE cliente_id = dni_cliente;
-END //
-DELIMITER ;
-```
-
 # SQL BOTON DE ORDENAR POR `atributo`
 ```sql
 ```
@@ -1116,10 +1082,42 @@ BEGIN
     WHERE nombre LIKE CONCAT('%', producto_nombre, '%');
 END //
 DELIMITER ;
-# ---------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------- ACA AGREGUE COSAS
 DELIMITER //
- //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ObtenerTablaClientes2`()
+BEGIN
+    SELECT 
+        clientes.dni_cliente,
+        clientes.nombre,
+        clientes.apellido,
+        clientes.mail,
+        COALESCE(COUNT(ordenesdecompra.id_orden), 0) AS cantidad_de_ordenes # Con COALESCE nos aseguramos que si un cliente no tiene ningun pedido entonces su columna cantidad_de_ordenes sera 0, sin el COALESCE seria NULL en vez de 0
+    FROM 
+        clientes 
+    LEFT JOIN 
+        ordenesdecompra ON clientes.dni_cliente = ordenesdecompra.dni_cliente
+    GROUP BY clientes.dni_cliente
+	ORDER BY cantidad_de_ordenes DESC;
+END//
 DELIMITER ;
 # ---------------------------------------------------------------------------------
-
-    
+DELIMITER //
+CREATE PROCEDURE `ObtenerProductosPorMenosStock`()
+BEGIN
+    SELECT * FROM productos ORDER BY cantidad_disponible ASC;
+END //
+DELIMITER ;
+# ---------------------------------------------------------------------------------
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ObtenerProductosPorMenosStock`()
+BEGIN
+    SELECT * FROM productos ORDER BY cantidad_disponible ASC;
+END //
+DELIMITER ;
+# ---------------------------------------------------------------------------------
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ObtenerProductosPorMasVentas`()
+BEGIN
+    SELECT * FROM productos ORDER BY ventas_totales DESC;
+END //
+DELIMITER ;

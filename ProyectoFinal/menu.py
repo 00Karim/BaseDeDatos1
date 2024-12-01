@@ -115,7 +115,7 @@ def ventanaGestionDeProductos(ventanaAnterior):
     agregarProducto = tk.Button(ventanaGestionDeProductos, text="Agregar producto", bg="#9494b8", font=("Arial", 14), command=lambda: agregarProducto())
     modificarProducto = tk.Button(ventanaGestionDeProductos, text="Modificar producto", bg="#9494b8", font=("Arial", 14), command=lambda: modificarProducto())
     eliminarProducto = tk.Button(ventanaGestionDeProductos, text="Eliminar producto", bg="#9494b8", font=("Arial", 14), command=lambda: eliminarProducto())
-    consultasAvanzadas = tk.Button(ventanaGestionDeProductos, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: consultasAvanzadas())
+    consultasAvanzadas = tk.Button(ventanaGestionDeProductos, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: consultasAvanzadasProductos())
 
     botonVolver = tk.Button(ventanaGestionDeProductos, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
 
@@ -530,8 +530,83 @@ def ventanaGestionDeProductos(ventanaAnterior):
             else:
                 crearErrorPopUp("Error, no existe un producto\ncon ese id") 
 
-    def consultasAvanzadas():
-        pass
+    def consultasAvanzadasProductos():
+        global crearGridVentana
+        nonlocal ventana_gestionProductos_abierta
+
+        if ventana_gestionProductos_abierta:
+            return 
+        
+        ventanaGestionDeProductos.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionProductos_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaAvanzadasProducto = tk.Toplevel()
+        ventanaAvanzadasProducto.config(bg="#d1d1e0")
+        ventanaAvanzadasProducto.title("Gestion de productos")
+        ventanaAvanzadasProducto.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaAvanzadasProducto)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaAvanzadasProducto, text="Consultas avanzadas", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaAvanzadasProducto, text="Elige tu consulta avanzada", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaAvanzadasProducto, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+        botonOrdenarPorMasVentas = tk.Button(ventanaAvanzadasProducto, text="Ordenar por mas ventas", font=("Arial", 14), command=lambda: ordenarPorMasVentas()) # Si el usuario hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
+        botonOrdenarPorMenorStock = tk.Button(ventanaAvanzadasProducto, text="Ordenar por menor stock", font=("Arial", 14), command=lambda: ordenarPorMenorStock())
+
+        # Declarar tabla
+        tablaProductos = ttk.Treeview(ventanaAvanzadasProducto, columns= ("id_producto", "nombre", "cantidad_disponible", "categoria", "ventas_totales"), show="headings")
+        tablaProductos.heading("id_producto", text="Id del producto", anchor="center")
+        tablaProductos.heading("nombre", text="Nombre", anchor="center")
+        tablaProductos.heading("cantidad_disponible", text="Cantidad disponible", anchor="center")
+        tablaProductos.heading("categoria", text="Categoria", anchor="center")
+        tablaProductos.heading("ventas_totales", text="Ventas totales", anchor="center")
+        tablaProductos.column("id_producto", width=80, anchor="center")
+        tablaProductos.column("nombre", width=130, anchor="center")
+        tablaProductos.column("cantidad_disponible", width=100, anchor="center")
+        tablaProductos.column("categoria", width=130, anchor="center")
+        tablaProductos.column("ventas_totales", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonOrdenarPorMasVentas.grid(row= 5, column=2, sticky="nse")
+        botonOrdenarPorMenorStock.grid(row= 5, column=2, sticky="nsw")
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+        
+    
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaProductos.grid(row=8, column=2, sticky="nsew")
+        
+
+        def llenar_tabla():
+            lista_productos = producto_db.verProductos()
+            for producto in lista_productos:
+                tablaProductos.insert("", "end", values=producto)
+
+        llenar_tabla() # Empezamos llenando la tabla con todos los valores
+
+        def ordenarPorMenorStock():
+            db.conectar()
+            tablaProductos.delete(*tablaProductos.get_children()) # Borramos los datos de la tabla actual por si el usuario toca dos veces el boton entonces asi no se duplican valores
+            tablaProductos.grid(row=8, column=2, sticky="nsew") # Insertamos la tabla elegida en el lugar correspondiente
+            lista_productos = producto_db.verProductosPorStock()
+            for producto in lista_productos:
+                tablaProductos.insert("", "end", values=producto)
+
+        def ordenarPorMasVentas():
+            db.conectar()
+            tablaProductos.delete(*tablaProductos.get_children())
+            tablaProductos.grid(row=8, column=2, sticky="nsew")
+            lista_productos = producto_db.verProductosPorVentas()
+            for producto in lista_productos:
+                tablaProductos.insert("", "end", values=producto)
 
 def ventanaGestionDeClientes(ventanaAnterior):
     ventana_gestionClientes_abierta = False
@@ -563,7 +638,7 @@ def ventanaGestionDeClientes(ventanaAnterior):
     botonRegistraClientes = tk.Button(ventanaGestionDeClientes, text="Registrar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: registraClientes())
     botonActualizarCliente = tk.Button(ventanaGestionDeClientes, text="Actualizar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: modificarCliente())
     botonEliminarCliente = tk.Button(ventanaGestionDeClientes, text="Eliminar cliente", bg="#9494b8", font=("Arial", 14), command=lambda: eliminarCliente())
-    botonConsultasAvanzadas = tk.Button(ventanaGestionDeClientes, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: None)
+    botonConsultasAvanzadas = tk.Button(ventanaGestionDeClientes, text="Consultas avanzadas", bg="#9494b8", font=("Arial", 14), command=lambda: consultasAvanzadasClientes())
 
     botonVolver = tk.Button(ventanaGestionDeClientes, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
 
@@ -904,7 +979,6 @@ def ventanaGestionDeClientes(ventanaAnterior):
                     else:
                         crearErrorPopUp("Error, no existe un cliente\ncon ese DNI") 
                 
-
     def eliminarCliente():
         db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
         nonlocal ventana_gestionClientes_abierta
@@ -998,6 +1072,98 @@ def ventanaGestionDeClientes(ventanaAnterior):
                     crearErrorPopUp("Cliente eliminado correctamente!", color="#4CAF50")
                 else:
                     crearErrorPopUp("Error, no existe un cliente\ncon ese DNI!")    
+
+    def consultasAvanzadasClientes():
+        global crearGridVentana
+        nonlocal ventana_gestionClientes_abierta
+
+        if ventana_gestionClientes_abierta:
+            return 
+        
+        ventanaGestionDeClientes.withdraw()
+
+        # Declarar ventana de gestion de productos
+        ventana_gestionClientes_abierta = True # Ponemos la variable en True para indicar que la ventana fue abierta y esta abierta 
+        ventanaAvanzadasCliente = tk.Toplevel()
+        ventanaAvanzadasCliente.config(bg="#d1d1e0")
+        ventanaAvanzadasCliente.title("Gestion de clientes")
+        ventanaAvanzadasCliente.state("zoomed")
+
+        # Declarar grid de la ventana
+        crearGridVentana(ventanaAvanzadasCliente)
+
+        # Declarar header y texto
+        headerPrincipal = tk.Label(ventanaAvanzadasCliente, text="Consultas avanzadas", font=("Arial", 20, "bold"), bg="#d1d1e0")
+        subtitulo = tk.Label(ventanaAvanzadasCliente, text="Elige tu consulta avanzada", font=("Arial", 17, "bold"), bg="#d1d1e0")
+
+        # Declarar botones
+        botonVolver = tk.Button(ventanaAvanzadasCliente, text="Volver", bg="#9494b8", font=("Arial", 14), command=lambda: on_close())
+        botonOrdenarAlfabeticamente = tk.Button(ventanaAvanzadasCliente, text="Ordenar clientes alfabeticamente", font=("Arial", 14), command=lambda: ordenarAlfabeticamente()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
+        botonOrdenarPorPedidos = tk.Button(ventanaAvanzadasCliente, text="Ordenar por cantidad de pedidos", font=("Arial", 14), command=lambda: ordenarPorPedidos())
+
+        # Declarar tabla
+        tablaClientes = ttk.Treeview(ventanaAvanzadasCliente, columns= ("dni_cliente", "nombre", "apellido", "mail"), show="headings", height=15)
+        tablaClientes.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaClientes.heading("nombre", text="Nombre", anchor="center")
+        tablaClientes.heading("apellido", text="Apellido", anchor="center")
+        tablaClientes.heading("mail", text="Mail", anchor="center")
+        tablaClientes.column("dni_cliente", width=80, anchor="center")
+        tablaClientes.column("nombre", width=130, anchor="center")
+        tablaClientes.column("apellido", width=100, anchor="center")
+        tablaClientes.column("mail", width=100, anchor="center")
+
+        tablaClientes2 = ttk.Treeview(ventanaAvanzadasCliente, columns= ("dni_cliente", "nombre", "apellido", "mail", "cantidad_ordenes"), show="headings", height=15)
+        tablaClientes2.heading("dni_cliente", text="DNI del cliente", anchor="center")
+        tablaClientes2.heading("nombre", text="Nombre", anchor="center")
+        tablaClientes2.heading("apellido", text="Apellido", anchor="center")
+        tablaClientes2.heading("mail", text="Mail", anchor="center")
+        tablaClientes2.heading("cantidad_ordenes", text="Cantidad de ordenes", anchor="center")
+        tablaClientes2.column("dni_cliente", width=80, anchor="center")
+        tablaClientes2.column("nombre", width=130, anchor="center")
+        tablaClientes2.column("apellido", width=100, anchor="center")
+        tablaClientes2.column("mail", width=100, anchor="center")
+        tablaClientes2.column("cantidad_ordenes", width=100, anchor="center")
+
+        # Posicionar header + subtitulo
+        headerPrincipal.grid(row=1, column=2, sticky="nsew")
+        subtitulo.grid(row=2, column=2, sticky="sew")
+
+        # Posicionar botones
+        botonOrdenarAlfabeticamente.grid(row= 5, column=2, sticky="nse")
+        botonOrdenarPorPedidos.grid(row= 5, column=2, sticky="nsw")
+        botonVolver.grid(row= 11, column=3, sticky="e")  
+        
+    
+        # Posicionar tabla + Llenar tabla con sus valores default
+        tablaClientes.grid(row=8, column=2, sticky="nsew")
+        
+
+        def llenar_tabla():
+            lista_clientes = cliente_db.verClientes()
+            for producto in lista_clientes:
+                tablaClientes.insert("", "end", values=producto)
+
+        llenar_tabla() # Empezamos llenando la tabla con todos los valores
+
+        def ordenarAlfabeticamente():
+            db.conectar()
+            tablaClientes2.grid_remove() # Eliminamos la tabla anterior
+            tablaClientes.delete(*tablaClientes.get_children()) # Borramos los datos de la tabla actual por si el usuario toca dos veces el boton entonces asi no se duplican valores
+            tablaClientes.grid(row=8, column=2, sticky="nsew") # Insertamos la tabla elegida en el lugar correspondiente
+            lista_clientes = cliente_db.verClientesAlfabeticamente()
+            for producto in lista_clientes:
+                tablaClientes.insert("", "end", values=producto)
+
+        def ordenarPorPedidos():
+            db.conectar()
+            tablaClientes.grid_remove()
+            tablaClientes2.delete(*tablaClientes2.get_children())
+            tablaClientes2.grid(row=8, column=2, sticky="nsew")
+            lista_clientes = cliente_db.verClientesTabla2()
+            for producto in lista_clientes:
+                tablaClientes2.insert("", "end", values=producto)
+
+        
 
 def ventanaGestionDeOrdenes(ventanaAnterior):
 

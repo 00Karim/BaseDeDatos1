@@ -7,6 +7,14 @@ class Producto:
     def verProductos(self):
         query = "CALL ObtenerTablas('productos')"
         return self.db.obtener_datos(query)
+    
+    def verProductosPorVentas(self):
+        query = "CALL ObtenerProductosPorMasVentas();"
+        return self.db.obtener_datos(query)
+    
+    def verProductosPorStock(self):
+        query = "CALL ObtenerProductosPorMenosStock();"
+        return self.db.obtener_datos(query)
 
     def verProductoPorAtributo(self, id = None, nombre = None, categoria = None): # Dependiendo de que atributo sea ingresado se va a elegir un query y un valor correspondientes
         if id is not None:
