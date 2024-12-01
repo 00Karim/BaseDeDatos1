@@ -438,17 +438,29 @@ def ventanaGestionDeProductos(ventanaAnterior):
             nombre_nuevo = textareaNombre.get("1.0", "end").strip()
             cantidad_nueva = textAreaCantidadDisponible.get("1.0", "end").strip()
             categoria_nueva = eleccion.get()
-            if cantidad_nueva == "":
-                cantidad_nueva = None # Tenemos que convertir cantidad nueva a none si el usuario no ingreso nada para que se traduzca a Null en sql y asi directamente no actualizamos la cantidad y la dejamos como esta
-            resultado = producto_db.modificarProductoPorId(id_AModificar, nombre_nuevo, cantidad_nueva, categoria_nueva) # DATO: decidimos que las ventas totales no se pueden actualizar aca ya que se actualizan solas cuando se efectua una orden nueva
-            if resultado == 1:
-                crearErrorPopUp("Error, la cantidad nueva no\npuede ser menor a 0!")
-            elif resultado == 2:
-                crearErrorPopUp("Error, no existe un producto\ncon ese id")
-            elif resultado == 3:  
-                tablaProductos.delete(*tablaProductos.get_children())
-                llenar_tabla()
-                crearErrorPopUp("Producto modificado correctamente", color="#4CAF50")       
+            if id_AModificar == '':
+                crearErrorPopUp("Atencion, no ingresaste un id", color="#FFC107")
+            else:
+                if cantidad_nueva == "":
+                    cantidad_nueva = None # Tenemos que convertir cantidad nueva a none si el usuario no ingreso nada para que se traduzca a Null en sql y asi directamente no actualizamos la cantidad y la dejamos como esta
+                resultado = producto_db.modificarProductoPorId(id_AModificar, nombre_nuevo, cantidad_nueva, categoria_nueva) # DATO: decidimos que las ventas totales no se pueden actualizar aca ya que se actualizan solas cuando se efectua una orden nueva
+                if resultado == 1:
+                    crearErrorPopUp("Error, la cantidad nueva no\npuede ser menor a 0!")
+                elif resultado == 2:
+                    crearErrorPopUp("Error, no existe un producto\ncon ese id")
+                elif resultado == 3:  
+                    tablaProductos.delete(*tablaProductos.get_children())
+                    llenar_tabla()
+                    crearErrorPopUp("Producto modificado correctamente", color="#4CAF50")    
+
+        def on_close():
+            nonlocal ventana_gestionProductos_abierta
+            ventana_gestionProductos_abierta = False
+            ventanaModificarProducto.destroy()
+            ventanaGestionDeProductos.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeProductos.deiconify()
+            
+        ventanaModificarProducto.protocol("WM_DELETE_WINDOW", on_close)   
 
     def eliminarProducto():
         db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
@@ -978,6 +990,15 @@ def ventanaGestionDeClientes(ventanaAnterior):
                         crearErrorPopUp("Cliente modificado correctamente!", color="#4CAF50")
                     else:
                         crearErrorPopUp("Error, no existe un cliente\ncon ese DNI") 
+
+        def on_close():
+            nonlocal ventana_gestionClientes_abierta
+            ventana_gestionClientes_abierta = False
+            ventanaModificarCliente.destroy()
+            ventanaGestionDeClientes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeClientes.deiconify()
+            
+        ventanaModificarCliente.protocol("WM_DELETE_WINDOW", on_close)
                 
     def eliminarCliente():
         db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
@@ -1071,7 +1092,16 @@ def ventanaGestionDeClientes(ventanaAnterior):
                     llenar_tabla()
                     crearErrorPopUp("Cliente eliminado correctamente!", color="#4CAF50")
                 else:
-                    crearErrorPopUp("Error, no existe un cliente\ncon ese DNI!")    
+                    crearErrorPopUp("Error, no existe un cliente\ncon ese DNI!")
+
+        def on_close():
+            nonlocal ventana_gestionClientes_abierta
+            ventana_gestionClientes_abierta = False
+            ventanaEliminarCliente.destroy()
+            ventanaGestionDeClientes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeClientes.deiconify()
+            
+        ventanaEliminarCliente.protocol("WM_DELETE_WINDOW", on_close)    
 
     def consultasAvanzadasClientes():
         global crearGridVentana
@@ -1139,6 +1169,8 @@ def ventanaGestionDeClientes(ventanaAnterior):
         
 
         def llenar_tabla():
+            tablaClientes2.grid_remove()
+            tablaClientes.delete(*tablaClientes.get_children())
             lista_clientes = cliente_db.verClientes()
             for producto in lista_clientes:
                 tablaClientes.insert("", "end", values=producto)
@@ -1162,6 +1194,15 @@ def ventanaGestionDeClientes(ventanaAnterior):
             lista_clientes = cliente_db.verClientesTabla2()
             for producto in lista_clientes:
                 tablaClientes2.insert("", "end", values=producto)
+
+        def on_close():
+            nonlocal ventana_gestionClientes_abierta
+            ventana_gestionClientes_abierta = False
+            ventanaAvanzadasCliente.destroy()
+            ventanaGestionDeClientes.state("zoomed") # Hacemos el zoom antes de traer la ventana nuevamente porque sino se nota mucho cuando se hace el zoom y queda feo
+            ventanaGestionDeClientes.deiconify()
+            
+        ventanaAvanzadasCliente.protocol("WM_DELETE_WINDOW", on_close)
 
         
 
@@ -1357,7 +1398,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         textareaIdProducto = Text(ventanaAgregarOrden, height=max, width=25)
         textAreaDniCliente = Text(ventanaAgregarOrden, height=max, width=25)
         textareaCantidad = Text(ventanaAgregarOrden, height=max, width=25)
-        calendarioFecha = Calendar(ventanaAgregarOrden, setmode="day", date_pattern="d/m/yy")
+        calendarioFecha = Calendar(ventanaAgregarOrden, setmode="day", date_pattern="yy/m/d")
         botonAgregar = tk.Button(ventanaAgregarOrden, text="Agregar", command=lambda: agregar()) # Si el cliente hace click en este boton, vamos a ejecutar el codigo para agregar el cliente con los parametros que haya ingresado
 
         # Declarar tabla
@@ -1388,7 +1429,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         labelCantidad.grid(row=5, column=1, sticky="e")
         labelFecha.grid(row=6, column=1, sticky="e")
 
-        # Posicionar input textarea + dropdownCategoria + boton agregar
+        # Posicionar input textarea + boton agregar
         textareaIdProducto.grid(row=3, column=2, sticky="we")
         textAreaDniCliente.grid(row=4, column=2, sticky="we")
         textareaCantidad.grid(row=5, column=2, sticky="we")
@@ -1484,13 +1525,19 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         labelDniCliente = tk.Label(ventanaModificarOrden, text="DNI cliente nuevo: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
         labelCantidad = tk.Label(ventanaModificarOrden, text="Cantidad nueva: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
         labelFecha = tk.Label(ventanaModificarOrden, text="Nueva fecha: ", font=("Arial", 12, "bold"), bg="#d1d1e0")
+        labelEstado = tk.Label(ventanaModificarOrden, text="Estado de orden:", font=("Arial", 12, "bold"), bg="#d1d1e0")
 
-        # Declarar input textarea + boton buscar
+        # Declarar input textarea + boton buscar + dropdown
         textareaIdOrdenAModificar = Text(ventanaModificarOrden, height=max, width=25)
         textareaIdProductoAModificar= Text(ventanaModificarOrden, height=max, width=25)
         textAreaDniClienteAModificar = Text(ventanaModificarOrden, height=max, width=25)
         textAreaCantidadAModificar = Text(ventanaModificarOrden, height=max, width=25)
         textAreaFechaAModificar = Text(ventanaModificarOrden, height=max, width=25)
+
+        eleccion = StringVar() # Declaramos la variable como string var para poder acceder a ella para definir los metodos usados para mostrar la tabla
+        eleccion.set("En proceso")
+        dropdownEstado = OptionMenu(ventanaModificarOrden, eleccion, "En proceso", "Entregado")
+
         botonModificar = tk.Button(ventanaModificarOrden, text="Modificar", command=lambda: Modificar()) # Si el usuaario hace click en este boton, vamos a ejecutar el codigo para Modificar la orden con los parametros que haya ingresado
 
         # Declarar tabla
@@ -1521,14 +1568,16 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         labelDniCliente.grid(row=5, column=1, sticky="e")
         labelCantidad.grid(row=6, column=1, sticky="e")
         labelFecha.grid(row=7, column=1, sticky="e")
+        labelEstado.grid(row=8, column=1, sticky="e")
 
-        # Posicionar input textarea + dropdownCategoria + boton Modificar
+        # Posicionar input textarea + Modificar
         textareaIdOrdenAModificar.grid(row=3, column=2, sticky="we")
         textareaIdProductoAModificar.grid(row=4, column=2, sticky="we")
         textAreaDniClienteAModificar.grid(row=5, column=2, sticky="we")
         textAreaCantidadAModificar.grid(row=6, column=2, sticky="we")
         textAreaFechaAModificar.grid(row=7, column=2, sticky="we")
-        botonModificar.grid(row=7, column=3, sticky="w")
+        dropdownEstado.grid(row=8, column=3, sticky="w")
+        botonModificar.grid(row=8, column=3, sticky="w")
 
         # Posicionar tabla + Llenar tabla con sus valores default
         tablaOrdenes.grid(row=8, column=2, sticky="nsew")
@@ -1541,6 +1590,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
         llenar_tabla()
         def Modificar(): 
             db.conectar() # Por alguna razon se desconecta la base de datos una vez que cerramos esta ventana, por lo que vamos a poner este parche para solucionarlo
+            estado_orden_nuevo = eleccion.get()
             id_orden_a_modificar = textareaIdOrdenAModificar.get("1.0", "end").strip()
             id_producto_nuevo = textareaIdProductoAModificar.get("1.0", "end").strip()
             dni_cliente_nuevo = textAreaDniClienteAModificar.get("1.0", "end").strip()
@@ -1552,6 +1602,8 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
                 if id_producto_nuevo == '' and dni_cliente_nuevo == '' and cantidad_nueva == '' and fecha_nueva == '':
                     pass # Si el usuario no ingreso ningun valor entonces nos vamos a ahorrar la ejecucion del procedimiento
                 else:
+                    if estado_orden_nuevo == '':
+                        estado_orden_nuevo == None
                     if cantidad_nueva == '':
                         cantidad_nueva = None # Convertimos la cantidad a None si no se le ingresa ningun valor: de esta manera, la conversion a sql lo convierte en un valor NULL y, al cumplir con una condicion, el codigo sql evita atualizar el stock del producto nuevo ingresado o el antiguo ya presente en la orden siendo modificada
                     if id_producto_nuevo == '':
@@ -1560,7 +1612,7 @@ def ventanaGestionDeOrdenes(ventanaAnterior):
                         dni_cliente_nuevo = None
                     if fecha_nueva == '':
                         fecha_nueva = None # Hacemos lo mismo con todas las variables para que, al cumplirse cierta condicion en el codigo sql, los valores no van a ser modificado sino que se van a quedar como estaban antes.
-                    resultado = orden_db.modificarOrdenPorId(id_orden_a_modificar, dni_cliente_nuevo, id_producto_nuevo, cantidad_nueva, fecha_nueva)
+                    resultado = orden_db.modificarOrdenPorId(id_orden_a_modificar, dni_cliente_nuevo, id_producto_nuevo, cantidad_nueva, fecha_nueva, estado_orden_nuevo)
                     if resultado == 1:
                         crearErrorPopUp("Error, no existe una orden\ncon ese ID")
                     elif resultado == 2:

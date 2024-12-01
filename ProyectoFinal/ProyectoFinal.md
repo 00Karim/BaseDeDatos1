@@ -703,7 +703,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `AgregarOrden`(
 IN cliente_dni VARCHAR(150),
 IN producto_id INT,
 IN cantidad_pedido VARCHAR(150),
-IN fecha DATE, 
+IN fecha VARCHAR(40), 
 OUT resultado INT
 )
 BEGIN
